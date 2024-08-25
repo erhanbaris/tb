@@ -53,6 +53,8 @@ impl Display for Number {
     }
 }
 
+#[derive(Debug)]
+#[derive(Copy, Clone)]
 pub enum AddressingMode {
     Immediate(Register),
     Indirect(Register),
@@ -60,11 +62,22 @@ pub enum AddressingMode {
     Complex // todo: later
 }
 
+impl Display for AddressingMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AddressingMode::Immediate(reg) => write!(f, "{:?}", reg),
+            AddressingMode::Indirect(reg) => write!(f, "({:?})", reg),
+            AddressingMode::Based(num, reg) => write!(f, "{}({:?})", num, reg),
+            AddressingMode::Complex => todo!(),
+        }
+    }
+}
+
 #[derive(Debug)]
 #[derive(Copy, Clone)]
 pub enum Location {
     Memory(i64),
-    Register(Register),
+    Register(AddressingMode),
     Imm(Number)
 }
 
@@ -112,7 +125,7 @@ impl BackendType {
 
         // Function begin
         self.print_inst(Instruction::Push(Register::RBP), context, buffer);
-        self.print_inst(Instruction::Mov { source: Location::Register(Register::RSP), target: Location::Register(Register::RBP) }, context, buffer);
+        self.print_inst(Instruction::Mov { source: Location::Register(AddressingMode::Immediate(Register::RSP)), target: Location::Register(AddressingMode::Immediate(Register::RBP)) }, context, buffer);
 
         buffer.push_str("    # function body begin\r\n");
 
@@ -122,7 +135,7 @@ impl BackendType {
         buffer.push_str("    # function body end\r\n");
 
         // Function end
-        self.print_inst(Instruction::Mov { source: Location::Register(Register::RBP), target: Location::Register(Register::RSP) }, context, buffer);
+        self.print_inst(Instruction::Mov { source: Location::Register(AddressingMode::Immediate(Register::RBP)), target: Location::Register(AddressingMode::Immediate(Register::RSP)) }, context, buffer);
         self.print_inst(Instruction::Pop(Register::RBP), context, buffer);
         self.print_inst(Instruction::Ret, context, buffer);
     }
@@ -155,7 +168,7 @@ impl BackendType {
         match (source, target) {
             (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add ${}, %{}", imm, register.to_string().to_lowercase())),
             (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add %{}, %{}", source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase())),
-            _ => panic!("unsupported")
+            value => panic!("unsupported ({:?})", value)
         }
     }
     

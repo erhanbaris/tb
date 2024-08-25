@@ -9,7 +9,9 @@ mod backend;
 fn main() {
     let mut context = ApplicationContext::new();
     let mut ast_application = AstApplication::default();
-    ast_application.asts.push(Box::new(DefinitionType::Function { name: "_main".to_owned(), parameters: Vec::new(), body: vec![Box::new(StatementType::Return(Some(VariableType::Number(2))))] }));
+
+    let assign = Box::new(StatementType::Assign { name: "test".to_owned(), assigne: Box::new(ExpressionType::Add { left: Box::new(VariableType::Number(10)), right: Box::new(VariableType::Number(10)) }) });
+    ast_application.asts.push(Box::new(DefinitionType::Function { name: "_main".to_owned(), parameters: Vec::new(), body: vec![assign, Box::new(StatementType::Return(Some(VariableType::Number(22))))] }));
     let backend_application = ast_application.generate();
     let mut buffer = String::new();
     backend_application.generate(&mut context, &mut buffer);

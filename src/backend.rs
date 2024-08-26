@@ -1,26 +1,9 @@
-use std::{borrow::Borrow, fmt::Display, io::BufReader};
+use std::{borrow::Borrow, fmt::{Debug, Display}, io::BufReader};
+
+use crate::register::{get_register_type, AddressingMode, Register};
 
 pub trait AsmGenerate {
     fn generate(&self, context: &mut ApplicationContext, buffer: &mut String);
-}
-
-
-#[repr(usize)]
-#[derive(Debug)]
-#[derive(Copy, Clone)]
-pub enum Register {
-    AL, BL, CL, DL, AH, BH, CH, DH, DIL, SIL, BPL, SPL, R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, // Byte Registers
-    AX, BX, CX, DX, DI, SI, BP, SP, R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W, // Word Registers
-    EAX, EBX, ECX, EDX, ESI, EDI, EBP, ESP, R8D, R9D, R10D, R11D, R12D, R13D, R14D, R15D, // Doubleword Registers
-    RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP, R8, R9, R10, R11, R12, R13, R14, R15, // Quadword Registers
-
-    LASTELEMENT
-}
-
-impl Display for Register {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }
 
 #[derive(Debug)]
@@ -55,50 +38,45 @@ impl Display for Number {
 
 #[derive(Debug)]
 #[derive(Copy, Clone)]
-pub enum AddressingMode {
-    Immediate(Register),
-    Indirect(Register),
-    Based(i32, Register),
-    Complex // todo: later
-}
-
-impl Display for AddressingMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AddressingMode::Immediate(reg) => write!(f, "{:?}", reg),
-            AddressingMode::Indirect(reg) => write!(f, "({:?})", reg),
-            AddressingMode::Based(num, reg) => write!(f, "{}({:?})", num, reg),
-            AddressingMode::Complex => todo!(),
-        }
-    }
-}
-
-#[derive(Debug)]
-#[derive(Copy, Clone)]
 pub enum Location {
     Memory(i64),
     Register(AddressingMode),
     Imm(Number)
 }
 
-#[derive(Debug)]
-#[derive(Copy, Clone)]
+impl Location {
+    pub fn get_register(&self) -> Option<Register> {
+        match self {
+            Location::Register(AddressingMode::Immediate(register)) => Some(*register),
+            Location::Register(AddressingMode::Indirect(register)) => Some(*register),
+            Location::Register(AddressingMode::Based(_, register)) => Some(*register),
+            Location::Register(AddressingMode::Complex) => Some(Register::RAX),
+            _ => None
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Instruction {
     Add {
         source: Location,
-        target: Location
+        target: Location,
+        comment: Option<String>
     },
     Sub {
         source: Location,
-        target: Location
+        target: Location,
+        comment: Option<String>
     },
     Mov {
         source: Location,
-        target: Location
+        target: Location,
+        comment: Option<String>
     },
 
-    Push(Register),
-    Pop(Register),
+    Push(AddressingMode),
+    Pop(AddressingMode),
+    Comment(String),
     Ret
 }
 
@@ -124,8 +102,8 @@ impl BackendType {
         buffer.push_str("\r\n");
 
         // Function begin
-        self.print_inst(Instruction::Push(Register::RBP), context, buffer);
-        self.print_inst(Instruction::Mov { source: Location::Register(AddressingMode::Immediate(Register::RSP)), target: Location::Register(AddressingMode::Immediate(Register::RBP)) }, context, buffer);
+        self.print_inst(Instruction::Push(AddressingMode::Immediate(Register::RBP)), context, buffer);
+        self.print_inst(Instruction::Mov { source: Location::Register(AddressingMode::Immediate(Register::RSP)), target: Location::Register(AddressingMode::Immediate(Register::RBP)), comment: None }, context, buffer);
 
         buffer.push_str("    # function body begin\r\n");
 
@@ -135,19 +113,20 @@ impl BackendType {
         buffer.push_str("    # function body end\r\n");
 
         // Function end
-        self.print_inst(Instruction::Mov { source: Location::Register(AddressingMode::Immediate(Register::RBP)), target: Location::Register(AddressingMode::Immediate(Register::RSP)) }, context, buffer);
-        self.print_inst(Instruction::Pop(Register::RBP), context, buffer);
+        self.print_inst(Instruction::Mov { source: Location::Register(AddressingMode::Immediate(Register::RBP)), target: Location::Register(AddressingMode::Immediate(Register::RSP)), comment: None }, context, buffer);
+        self.print_inst(Instruction::Pop(AddressingMode::Immediate(Register::RBP)), context, buffer);
         self.print_inst(Instruction::Ret, context, buffer);
     }
 
     fn generate_instruction(&self, context: &mut ApplicationContext, buffer: &mut String, inst: &Instruction) {
         match inst {
-            Instruction::Add { source: source, target } => self.do_add(source, target, buffer),
-            Instruction::Sub { source, target } => self.do_sub(source, target, buffer),
-            Instruction::Mov { source, target } => self.do_mov(source, target, buffer),
+            Instruction::Add { source: source, target, comment } => self.do_add(source, target, comment, buffer),
+            Instruction::Sub { source, target, comment } => self.do_sub(source, target, comment, buffer),
+            Instruction::Mov { source, target, comment } => self.do_mov(source, target, comment, buffer),
             Instruction::Ret => self.do_ret(buffer),
             Instruction::Push(register) => self.do_push(register, buffer),
             Instruction::Pop(register) => self.do_pop(register, buffer),
+            Instruction::Comment(comment) => self.do_comment(comment, buffer)
         };
         buffer.push_str("\r\n");
     }
@@ -156,34 +135,38 @@ impl BackendType {
         buffer.push_str("ret");
     }
     
-    fn do_push(&self, register: &Register, buffer: &mut String) {
-        buffer.push_str(&format!("push %{}", register.to_string().to_lowercase()));
+    fn do_push(&self, register: &AddressingMode, buffer: &mut String) {
+        buffer.push_str(&format!("push{} {}", self.get_suffix(&register), register.to_string().to_lowercase()));
     }
     
-    fn do_pop(&self, register: &Register, buffer: &mut String) {
-        buffer.push_str(&format!("pop %{}", register.to_string().to_lowercase()));
+    fn do_pop(&self, register: &AddressingMode, buffer: &mut String) {
+        buffer.push_str(&format!("pop{} {}", self.get_suffix(&register), register.to_string().to_lowercase()));
     }
     
-    fn do_add(&self, source: &Location, target: &Location, buffer: &mut String) {
+    fn do_comment(&self, comment: &String, buffer: &mut String) {
+        buffer.push_str(&self.get_comment(&Some(comment.to_owned())));
+    }
+    
+    fn do_add(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add ${}, %{}", imm, register.to_string().to_lowercase())),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add %{}, %{}", source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase())),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add{} ${}, {}{}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add{} {}, {}{}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             value => panic!("unsupported ({:?})", value)
         }
     }
     
-    fn do_sub(&self, source: &Location, target: &Location, buffer: &mut String) {
+    fn do_sub(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("sub ${}, %{}", imm, register.to_string().to_lowercase())),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("sub %{}, %{}", source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase())),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("sub{} ${}, {}{}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("sub{} {}, {}{}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             _ => panic!("unsupported")
         }
     }
     
-    fn do_mov(&self, source: &Location, target: &Location, buffer: &mut String) {
+    fn do_mov(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("mov ${}, %{}", imm, register.to_string().to_lowercase())),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("mov %{}, %{}", source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase())),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("mov{} ${}, {}{}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("mov{} {}, {}{}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             _ => panic!("unsupported")
         }
     }
@@ -191,6 +174,35 @@ impl BackendType {
     fn print_inst<T: Borrow<Instruction>>(&self, inst: T, context: &mut ApplicationContext, buffer: &mut String) {
         buffer.push_str("    ");
         self.generate_instruction(context, buffer, inst.borrow());
+    }
+
+    fn get_comment(&self, comment: &Option<String>) -> String {
+        match comment {
+            Some(comment) => format!(" # {}", comment),
+            None => String::new()
+        }
+    }
+
+    fn get_suffix(&self, mode: &AddressingMode) -> &str {
+        match mode {
+            AddressingMode::Immediate(_) => "",
+            AddressingMode::Indirect(_) => "l",
+            AddressingMode::Based(_, _) => "l",
+            AddressingMode::Complex => "l",
+        }
+    }
+
+    fn get_suffix_from_registers(&self, mode1: &AddressingMode, mode2: &AddressingMode) -> &str {
+        let mode1_register = mode1.get_register();
+        let mode2_register = mode2.get_register();
+
+        let mode1_register_type = get_register_type(mode1_register);
+        let mode2_register_type = get_register_type(mode1_register);
+
+        match mode1_register_type != mode2_register_type {
+            true => "l",
+            false => ""
+        }
     }
 }
 
@@ -222,7 +234,7 @@ impl OsSpecificDefs for LinuxSpecificDefs {
     }
 
     fn end_of_file_instructions(&self) -> &'static str {
-        ".section .note.GNU-stack,\"\",@progbits"
+        ".section .note.GNU-stack,\"\",@progbits\r\n.ident	\"TB v0.1.0\""
     }
 }
 
@@ -230,15 +242,14 @@ pub struct ApplicationContext {
     pub os_specific_defs: Box<dyn OsSpecificDefs>
 } 
 
-impl ApplicationContext {
-    pub fn new() -> Self {
-        let info = os_info::get();
-
+impl Default for ApplicationContext {
+    fn default() -> Self {
         Self {
-            os_specific_defs: match info.os_type() {
-                os_info::Type::Linux => Box::new(LinuxSpecificDefs::default()),
-                os_info::Type::Macos => Box::new(MacSpecificDefs::default()),
-                os => panic!("Unsupported OS ({}", os)
+            os_specific_defs: match os_version::detect().unwrap() {
+                os_version::OsVersion::Linux(_) => Box::new(LinuxSpecificDefs::default()),
+                os_version::OsVersion::MacOS(_) => Box::new(LinuxSpecificDefs::default()),
+                os_version::OsVersion::Windows(_) => Box::new(LinuxSpecificDefs::default()),
+                os => panic!("Unsupported OS ({:?})", os)
             }
         }
     }

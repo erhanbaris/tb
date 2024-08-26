@@ -1,5 +1,7 @@
 use std::{borrow::Borrow, fmt::{Debug, Display}, io::BufReader};
 
+use strum_macros::EnumDiscriminants;
+
 use crate::register::{get_register_type, AddressingMode, Register};
 
 pub trait AsmGenerate {
@@ -54,9 +56,17 @@ impl Location {
             _ => None
         }
     }
+    
+    pub fn get_addressing_mode(&self) -> Option<AddressingMode> {
+        match self {
+            Location::Register(addressing_mode) => Some(*addressing_mode),
+            _ => None
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumDiscriminants)]
+#[strum_discriminants(name(InstructionType))]
 pub enum Instruction {
     Add {
         source: Location,
@@ -186,9 +196,9 @@ impl BackendType {
     fn get_suffix(&self, mode: &AddressingMode) -> &str {
         match mode {
             AddressingMode::Immediate(_) => "",
-            AddressingMode::Indirect(_) => "l",
-            AddressingMode::Based(_, _) => "l",
-            AddressingMode::Complex => "l",
+            AddressingMode::Indirect(_) => "q",
+            AddressingMode::Based(_, _) => "q",
+            AddressingMode::Complex => "q",
         }
     }
 
@@ -234,7 +244,7 @@ impl OsSpecificDefs for LinuxSpecificDefs {
     }
 
     fn end_of_file_instructions(&self) -> &'static str {
-        ".section .note.GNU-stack,\"\",@progbits\r\n.ident	\"TB v0.1.0\""
+        ".ident	\"TB v0.1.0\""
     }
 }
 
@@ -247,7 +257,7 @@ impl Default for ApplicationContext {
         Self {
             os_specific_defs: match os_version::detect().unwrap() {
                 os_version::OsVersion::Linux(_) => Box::new(LinuxSpecificDefs::default()),
-                os_version::OsVersion::MacOS(_) => Box::new(LinuxSpecificDefs::default()),
+                os_version::OsVersion::MacOS(_) => Box::new(MacSpecificDefs::default()),
                 os_version::OsVersion::Windows(_) => Box::new(LinuxSpecificDefs::default()),
                 os => panic!("Unsupported OS ({:?})", os)
             }

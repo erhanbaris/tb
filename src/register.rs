@@ -87,6 +87,13 @@ impl AddressingMode {
             AddressingMode::Complex => Register::RAX,
         }
     }
+
+    pub fn is_direct_register(&self) -> bool {
+        match self {
+            AddressingMode::Immediate(_) => true,
+            _ => false
+        }
+    }
 }
 
 pub fn get_register_type(register: Register) -> RegisterType {

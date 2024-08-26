@@ -1,16 +1,77 @@
-use crate::backend::{AddressingMode, Application, BackendType, Instruction, Location, Number, Register};
+use std::collections::HashMap;
+
+use crate::{backend::{Application, BackendType, Instruction, Location, Number}, register::{AddressingMode, Register}};
 
 #[derive(Debug, Clone)]
 struct Scope {
     pub variables: Vec<String>,
-    pub last_assigned_location: Location
+    pub last_assigned_location: Location,
+    pub registers: Vec<(Register, bool)>
 }
 
 impl Default for Scope {
     fn default() -> Self {
         Self {
             variables: Default::default(),
-            last_assigned_location: Location::Register(AddressingMode::Immediate(Register::RAX))
+            last_assigned_location: Location::Register(AddressingMode::Immediate(Register::RAX)),
+            registers: vec![(Register::RDX, true), (Register::RCX, true), (Register::R8, true), (Register::R9, true), (Register::RDI, true)]
+        }
+    }
+}
+
+impl Scope {
+    pub fn register_backup(&self) -> Vec<(Register, bool)> {
+        self.registers.clone()
+    }
+
+    pub fn mark_register(&mut self, register: Register) {
+        for (index, (register, status)) in self.registers.iter().enumerate() {
+            if *status {
+                let register = *register;
+                self.registers[index] = (register, false);
+                break;
+            }
+        }
+    }
+
+    pub fn unmark_register(&mut self, register: Register) {
+        for (index, (register, status)) in self.registers.iter().enumerate() {
+            if *status {
+                let register = *register;
+                self.registers[index] = (register, true);
+                break;
+            }
+        }
+    }
+
+    pub fn register_restore(&mut self, registers: Vec<(Register, bool)>) {
+        self.registers = registers;
+    }
+
+    pub fn add_variable(&mut self, name :&str) -> usize {
+        self.variables.push(name.to_owned());
+        self.variables.len()
+    }
+
+    pub fn add_temp_variable(&mut self) -> usize {
+        self.variables.push(format!(".t{}", self.variables.len()));
+        self.variables.len()
+    }
+
+    pub fn lock_register(&mut self) -> Option<Register> {
+        for (index, (register, status)) in self.registers.iter().enumerate() {
+            if *status {
+                let register = *register;
+                self.registers[index] = (register, false);
+                return Some(register)
+            }
+        }
+        None
+    }
+    
+    pub fn release_register(&mut self, register: Register) {
+        if let Some(position) = self.registers.iter().position(|item| item.0 == register) {
+            self.registers[position] = (register, true);
         }
     }
 }
@@ -21,27 +82,48 @@ pub enum VariableType {
     Number(i32),
 }
 
+impl VariableType {
+    pub fn generate(&self, instructions: &mut Vec<Instruction>, scope: &mut Scope) -> Location {
+        match self {
+            VariableType::Variable(variable) => match scope.variables.iter().position(|item| item == variable) {
+                Some(position) => Location::Register(AddressingMode::create_based(position as i32 * -4, Register::RBP)),
+                None => panic!("variable not found")
+            },
+            VariableType::Number(num) => {
+                let position = scope.add_temp_variable();
+                let stack = Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP));
+
+                instructions.push(Instruction::Mov { source: Location::Imm(Number::I32(*num)), target: stack.clone(), comment: None });
+
+                let register = scope.lock_register().unwrap();
+                instructions.push(Instruction::Mov { source: stack.clone(), target: Location::Register(AddressingMode::Immediate(register)), comment: None });
+                return Location::Register(AddressingMode::Immediate(register));
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum ExpressionType {
     Add {
-        left: Box<VariableType>,
-        right: Box<VariableType>
+        target: Box<VariableType>,
+        source: Box<VariableType>
     },
     Sub {
-        left: Box<VariableType>,
-        right: Box<VariableType>
+        target: Box<VariableType>,
+        source: Box<VariableType>
     },
     Mul {
-        left: Box<VariableType>,
-        right: Box<VariableType>
+        target: Box<VariableType>,
+        source: Box<VariableType>
     },
     Div {
-        left: Box<VariableType>,
-        right: Box<VariableType>
+        target: Box<VariableType>,
+        source: Box<VariableType>
     },
     Neg {
-        left: Box<VariableType>,
-        right: Box<VariableType>
+        target: Box<VariableType>,
+        source: Box<VariableType>
     },
     Value(VariableType)
 }
@@ -49,34 +131,35 @@ pub enum ExpressionType {
 impl ExpressionType {
     pub fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
         match self {
-            ExpressionType::Add { left, right } => self.generate_add(scope, left, right),
-            ExpressionType::Sub { left, right } => todo!(),
-            ExpressionType::Mul { left, right } => todo!(),
-            ExpressionType::Div { left, right } => todo!(),
-            ExpressionType::Neg { left, right } => todo!(),
+            ExpressionType::Add { target, source } => self.generate_add(scope, target, source),
+            ExpressionType::Sub { target, source } => todo!(),
+            ExpressionType::Mul { target, source } => todo!(),
+            ExpressionType::Div { target, source } => todo!(),
+            ExpressionType::Neg { target, source } => todo!(),
             ExpressionType::Value(val) => self.generate_value(val),
         }
     }
 
-    fn generate_add(&self, scope: &mut Scope, left: &VariableType, right: &VariableType) -> Vec<Instruction> {
-        let left = match left {
-            VariableType::Variable(variable) => match scope.variables.iter().position(|item| item == variable) {
-                Some(position) => Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)),
-                None => panic!("variable not found")
-            },
-            VariableType::Number(num) => Location::Imm(Number::I32(*num)),
-        };
+    fn generate_add(&self, scope: &mut Scope, target: &VariableType, source: &VariableType) -> Vec<Instruction> {
+        let mut instructions = Vec::new();
 
-        let right = match right {
-            VariableType::Variable(variable) => match scope.variables.iter().position(|item| item == variable) {
-                Some(position) => Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)),
-                None => panic!("variable not found")
-            },
-            VariableType::Number(num) => Location::Imm(Number::I32(*num)),
-        };
+        let registers = scope.register_backup();
 
-        scope.last_assigned_location = right.clone();
-        vec![Instruction::Add { source: left, target: right }]
+        instructions.push(Instruction::Comment("Generate source value".to_owned()));
+        let source = source.generate(&mut instructions, scope);
+
+        instructions.push(Instruction::Comment("Generate target value".to_owned()));
+        let target = target.generate(&mut instructions, scope);
+
+        instructions.push(Instruction::Add { source, target: target.clone(), comment: None });
+        scope.register_restore(registers);
+        scope.last_assigned_location = target.clone();
+
+        if let Some(register) = target.get_register() {
+            scope.mark_register(register);
+        }
+
+        instructions
     }
 
     pub fn generate_value(&self, value: &VariableType) -> Vec<Instruction> {
@@ -100,34 +183,38 @@ pub enum StatementType {
 impl StatementType {
     pub fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
         match self {
-            StatementType::Assign { name, assigne } => self.build_assign(scope, name, assigne),
-            StatementType::Return(expr) => self.build_return(scope, expr),
+            StatementType::Assign { name, assigne } => self.generate_assign(scope, name, assigne),
+            StatementType::Return(expr) => self.generate_return(scope, expr),
         }
     }
     
-    pub fn build_assign(&self, scope: &mut Scope, name: &String, assigne: &Box<ExpressionType>) -> Vec<Instruction> {
+    pub fn generate_assign(&self, scope: &mut Scope, name: &String, assigne: &Box<ExpressionType>) -> Vec<Instruction> {
         let position = match scope.variables.iter().position(|item| item == name) {
             Some(index) => index,
             None => {
                 scope.variables.push(name.to_owned());
-                scope.variables.len() - 1
+                scope.variables.len()
             }
         };
 
+        let registers = scope.register_backup();
+
         let mut instructions = assigne.generate(scope);
-        instructions.push(Instruction::Mov { source: scope.last_assigned_location.clone(), target: Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)) });
+        instructions.push(Instruction::Mov { source: scope.last_assigned_location.clone(), target: Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)), comment: Some(format!("assign {}", name)) });
+        scope.last_assigned_location = Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP));
+        scope.register_restore(registers);
         instructions
     }
 
-    pub fn build_return(&self, scope: &mut Scope, expr: &Option<VariableType>) -> Vec<Instruction> {
+    pub fn generate_return(&self, scope: &mut Scope, expr: &Option<VariableType>) -> Vec<Instruction> {
         match expr {
             Some(VariableType::Variable(variable)) => {
                 if let Some(position) = scope.variables.iter().position(|item| item == variable) {
-                    return vec![Instruction::Mov { source: Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)), target: Location::Register(AddressingMode::Immediate(Register::RAX)) }]
+                    return vec![Instruction::Mov { source: scope.last_assigned_location.clone(), target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }]
                 }
                 Vec::new()
             },
-            Some(VariableType::Number(variable)) => vec![Instruction::Mov { source: Location::Imm(Number::I32(*variable)), target: Location::Register(AddressingMode::Immediate(Register::RAX)) }],
+            Some(VariableType::Number(variable)) => vec![Instruction::Mov { source: Location::Imm(Number::I32(*variable)), target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }],
             None => Vec::default()
         }
     }
@@ -145,11 +232,11 @@ pub enum DefinitionType {
 impl DefinitionType {
     fn generate(&self) -> BackendType {
         match self {
-            DefinitionType::Function { name, parameters, body } => self.build_function(name, parameters, body)
+            DefinitionType::Function { name, parameters, body } => self.generate_function(name, parameters, body)
         }
     }
 
-    fn build_function(&self, name: &String, parameters: &Vec<Box<VariableType>>, body: &Vec<Box<StatementType>>) -> BackendType {
+    fn generate_function(&self, name: &String, parameters: &Vec<Box<VariableType>>, body: &Vec<Box<StatementType>>) -> BackendType {
         let mut instructions = Vec::new();
         let mut scope = Scope::default();
         for item in body.iter() {

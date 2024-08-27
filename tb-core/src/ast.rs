@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use strum_macros::EnumDiscriminants;
 
@@ -92,7 +91,7 @@ pub enum Variable {
 }
 
 impl Variable {
-    pub fn generate(&self, instructions: &mut Vec<Instruction>, scope: &mut Scope) -> Location {
+    fn generate(&self, instructions: &mut Vec<Instruction>, scope: &mut Scope) -> Location {
         match self {
             Variable::Variable(variable) => match scope.find_variable(variable) {
                 Some(position) => Location::Register(AddressingMode::create_based(position as i32 * -4, Register::RBP)),
@@ -102,10 +101,10 @@ impl Variable {
                 let position = scope.add_temp_variable();
                 let stack = Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP));
 
-                instructions.push(Instruction::Mov { source: Location::Imm(Number::I32(*num)), target: stack.clone(), comment: None });
+                instructions.push(Instruction::Mov { source: Location::Imm(Number::I32(*num)), target: stack, comment: None });
 
                 let register = scope.lock_register().unwrap();
-                instructions.push(Instruction::Mov { source: stack.clone(), target: Location::Register(AddressingMode::Immediate(register)), comment: None });
+                instructions.push(Instruction::Mov { source: stack, target: Location::Register(AddressingMode::Immediate(register)), comment: None });
                 Location::Register(AddressingMode::Immediate(register))
             },
         }
@@ -122,14 +121,18 @@ pub enum Expression {
     Not {
         source: Variable
     },
+    Neg {
+        source: Variable
+    },
     Value(Variable)
 }
 
 impl Expression {
-    pub fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
+    fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
         match self {
             Expression::Add { target, source } => self.generate_add(scope, target, source),
             Expression::Not { source } => self.generate_not(scope, source),
+            Expression::Neg { source } => self.generate_neg(scope, source),
             Expression::Value(val) => self.generate_value(val),
         }
     }
@@ -153,9 +156,9 @@ impl Expression {
             }
         }
 
-        instructions.push(Instruction::Add { source, target: target.clone(), comment: None });
+        instructions.push(Instruction::Add { source, target, comment: None });
         scope.register_restore(registers);
-        scope.last_assigned_location = target.clone();
+        scope.last_assigned_location = target;
 
         if let Some(register) = target.get_register() {
             scope.mark_register(register);
@@ -180,9 +183,36 @@ impl Expression {
             }
         }
 
-        instructions.push(Instruction::Not { source: source.clone(), comment: None });
+        instructions.push(Instruction::Not { source, comment: None });
         scope.register_restore(registers);
-        scope.last_assigned_location = source.clone();
+        scope.last_assigned_location = source;
+
+        if let Some(register) = source.get_register() {
+            scope.mark_register(register);
+        }
+
+        instructions
+    }
+
+    fn generate_neg(&self, scope: &mut Scope, source: &Variable) -> Vec<Instruction> {
+        let mut instructions = Vec::new();
+
+        let registers = scope.register_backup();
+
+        instructions.push(Instruction::Comment("Generate source value".to_owned()));
+        let mut source = source.generate(&mut instructions, scope);
+
+        if let Some(mode) = source.get_addressing_mode() {
+            if !mode.is_direct_register() {
+                let new_reg = scope.lock_register().unwrap();
+                instructions.push(Instruction::Mov { source, target: Location::Register(AddressingMode::Immediate(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
+                source = Location::Register(AddressingMode::Immediate(new_reg));
+            }
+        }
+
+        instructions.push(Instruction::Neg { source, comment: None });
+        scope.register_restore(registers);
+        scope.last_assigned_location = source;
 
         if let Some(register) = source.get_register() {
             scope.mark_register(register);
@@ -210,15 +240,15 @@ pub enum Statement {
 }
 
 impl Statement {
-    pub fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
+    fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
         match self {
             Statement::Assign { name, assigne } => self.generate_assign(scope, name, assigne),
             Statement::Return(expr) => self.generate_return(scope, expr),
         }
     }
     
-    pub fn generate_assign(&self, scope: &mut Scope, name: &String, assigne: &Box<Expression>) -> Vec<Instruction> {
-        let position = match scope.find_variable(&name) {
+    fn generate_assign(&self, scope: &mut Scope, name: &String, assigne: &Box<Expression>) -> Vec<Instruction> {
+        let position = match scope.find_variable(name) {
             Some(index) => index,
             None => {
                 scope.variables.push(name.to_owned());
@@ -238,17 +268,17 @@ impl Statement {
             }
         }
 
-        instructions.push(Instruction::Mov { source: scope.last_assigned_location.clone(), target: Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)), comment: Some(format!("assign {}", name)) });
+        instructions.push(Instruction::Mov { source: scope.last_assigned_location, target: Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP)), comment: Some(format!("assign {}", name)) });
         scope.last_assigned_location = Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP));
         scope.register_restore(registers);
         instructions
     }
 
-    pub fn generate_return(&self, scope: &mut Scope, expr: &Option<Variable>) -> Vec<Instruction> {
+    fn generate_return(&self, scope: &mut Scope, expr: &Option<Variable>) -> Vec<Instruction> {
         match expr {
             Some(Variable::Variable(variable)) => {
                 if let Some(position) = scope.find_variable(variable) {
-                    return vec![Instruction::Mov { source: scope.last_assigned_location.clone(), target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }]
+                    return vec![Instruction::Mov { source: scope.last_assigned_location, target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }]
                 }
                 Vec::new()
             },

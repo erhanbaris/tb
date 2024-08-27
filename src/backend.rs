@@ -2,7 +2,7 @@ use std::{borrow::Borrow, fmt::{Debug, Display}, io::BufReader};
 
 use strum_macros::EnumDiscriminants;
 
-use crate::register::{get_register_type, AddressingMode, Register};
+use crate::{register::{get_register_type, AddressingMode, Register}, tool::{os_defs, OsSpecificDefs}};
 
 pub trait AsmGenerate {
     fn generate(&self, context: &mut ApplicationContext, buffer: &mut String);
@@ -73,9 +73,8 @@ pub enum Instruction {
         target: Location,
         comment: Option<String>
     },
-    Sub {
+    Not {
         source: Location,
-        target: Location,
         comment: Option<String>
     },
     Mov {
@@ -91,21 +90,21 @@ pub enum Instruction {
 }
 
 #[derive(Debug, Clone)]
-pub enum BackendType {
+pub enum Backend {
     Function { name: String, instructions: Vec<Instruction> },
     Instruction(Instruction)
 }
 
-impl AsmGenerate for BackendType {
+impl AsmGenerate for Backend {
     fn generate(&self, context: &mut ApplicationContext, buffer: &mut String) {
         match self {
-            BackendType::Function { name, instructions } => self.generate_function(context, buffer, name, instructions),
-            BackendType::Instruction(inst) => self.generate_instruction(context, buffer, inst),
+            Backend::Function { name, instructions } => self.generate_function(context, buffer, name, instructions),
+            Backend::Instruction(inst) => self.generate_instruction(context, buffer, inst),
         };
     }
 }
 
-impl BackendType {
+impl Backend {
     fn generate_function(&self, context: &mut ApplicationContext, buffer: &mut String, name: &String, instructions: &Vec<Instruction>) {
         buffer.push_str(name);
         buffer.push_str(":");
@@ -131,7 +130,7 @@ impl BackendType {
     fn generate_instruction(&self, context: &mut ApplicationContext, buffer: &mut String, inst: &Instruction) {
         match inst {
             Instruction::Add { source: source, target, comment } => self.do_add(source, target, comment, buffer),
-            Instruction::Sub { source, target, comment } => self.do_sub(source, target, comment, buffer),
+            Instruction::Not { source, comment } => self.do_not(source, comment, buffer),
             Instruction::Mov { source, target, comment } => self.do_mov(source, target, comment, buffer),
             Instruction::Ret => self.do_ret(buffer),
             Instruction::Push(register) => self.do_push(register, buffer),
@@ -159,24 +158,23 @@ impl BackendType {
     
     fn do_add(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add{} ${}, {}{}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add{} {}, {}{}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add{} ${}, {} {}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add{} {}, {} {}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             value => panic!("unsupported ({:?})", value)
         }
     }
     
-    fn do_sub(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
-        match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("sub{} ${}, {}{}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("sub{} {}, {}{}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
+    fn do_not(&self, source: &Location, comment: &Option<String>, buffer: &mut String) {
+        match source {
+            Location::Register(source_reg) => buffer.push_str(&format!("not {} {}", source_reg.to_string().to_lowercase(), self.get_comment(comment))),
             _ => panic!("unsupported")
         }
     }
     
     fn do_mov(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("mov{} ${}, {}{}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("mov{} {}, {}{}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("mov{} ${}, {} {}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("mov{} {}, {} {}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             _ => panic!("unsupported")
         }
     }
@@ -188,7 +186,7 @@ impl BackendType {
 
     fn get_comment(&self, comment: &Option<String>) -> String {
         match comment {
-            Some(comment) => format!(" # {}", comment),
+            Some(comment) => format!("# {}", comment),
             None => String::new()
         }
     }
@@ -216,58 +214,21 @@ impl BackendType {
     }
 }
 
-pub trait OsSpecificDefs {
-    fn main_function_name(&self) -> &'static str;
-    fn end_of_file_instructions(&self) -> &'static str;
-}
-
-#[derive(Debug, Clone, Default)]
-struct MacSpecificDefs;
-
-#[derive(Debug, Clone, Default)]
-struct LinuxSpecificDefs;
-
-
-impl OsSpecificDefs for MacSpecificDefs {
-    fn main_function_name(&self) -> &'static str {
-        "_main"
-    }
-
-    fn end_of_file_instructions(&self) -> &'static str {
-        ""
-    }
-}
-
-impl OsSpecificDefs for LinuxSpecificDefs {
-    fn main_function_name(&self) -> &'static str {
-        "main"
-    }
-
-    fn end_of_file_instructions(&self) -> &'static str {
-        ".ident	\"TB v0.1.0\""
-    }
-}
-
 pub struct ApplicationContext {
     pub os_specific_defs: Box<dyn OsSpecificDefs>
-} 
+}
 
 impl Default for ApplicationContext {
     fn default() -> Self {
         Self {
-            os_specific_defs: match os_version::detect().unwrap() {
-                os_version::OsVersion::Linux(_) => Box::new(LinuxSpecificDefs::default()),
-                os_version::OsVersion::MacOS(_) => Box::new(MacSpecificDefs::default()),
-                os_version::OsVersion::Windows(_) => Box::new(LinuxSpecificDefs::default()),
-                os => panic!("Unsupported OS ({:?})", os)
-            }
+            os_specific_defs: os_defs()
         }
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Application {
-    pub items: Vec<BackendType>
+    pub items: Vec<Backend>
 }
 
 impl AsmGenerate for Application {

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{backend::{Application, BackendType, Instruction, Location, Number}, register::{AddressingMode, Register}};
+use strum_macros::EnumDiscriminants;
+
+use crate::{backend::{Application, Backend, Instruction, Location, Number}, register::{AddressingMode, Register}};
 
 #[derive(Debug, Clone)]
 struct Scope {
@@ -84,19 +86,19 @@ impl Scope {
 }
 
 #[derive(Debug, Clone)]
-pub enum VariableType {
+pub enum Variable {
     Variable(String),
     Number(i32),
 }
 
-impl VariableType {
+impl Variable {
     pub fn generate(&self, instructions: &mut Vec<Instruction>, scope: &mut Scope) -> Location {
         match self {
-            VariableType::Variable(variable) => match scope.find_variable(variable) {
+            Variable::Variable(variable) => match scope.find_variable(variable) {
                 Some(position) => Location::Register(AddressingMode::create_based(position as i32 * -4, Register::RBP)),
                 None => panic!("variable not found")
             },
-            VariableType::Number(num) => {
+            Variable::Number(num) => {
                 let position = scope.add_temp_variable();
                 let stack = Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP));
 
@@ -110,44 +112,29 @@ impl VariableType {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum ExpressionType {
+#[derive(Debug, Clone, EnumDiscriminants)]
+#[strum_discriminants(name(ExpressionDiscriminant))]
+pub enum Expression {
     Add {
-        target: Box<VariableType>,
-        source: Box<VariableType>
+        target: Variable,
+        source: Variable
     },
-    Sub {
-        target: Box<VariableType>,
-        source: Box<VariableType>
+    Not {
+        source: Variable
     },
-    Mul {
-        target: Box<VariableType>,
-        source: Box<VariableType>
-    },
-    Div {
-        target: Box<VariableType>,
-        source: Box<VariableType>
-    },
-    Neg {
-        target: Box<VariableType>,
-        source: Box<VariableType>
-    },
-    Value(VariableType)
+    Value(Variable)
 }
 
-impl ExpressionType {
+impl Expression {
     pub fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
         match self {
-            ExpressionType::Add { target, source } => self.generate_add(scope, target, source),
-            ExpressionType::Sub { target, source } => todo!(),
-            ExpressionType::Mul { target, source } => todo!(),
-            ExpressionType::Div { target, source } => todo!(),
-            ExpressionType::Neg { target, source } => todo!(),
-            ExpressionType::Value(val) => self.generate_value(val),
+            Expression::Add { target, source } => self.generate_add(scope, target, source),
+            Expression::Not { source } => self.generate_not(scope, source),
+            Expression::Value(val) => self.generate_value(val),
         }
     }
 
-    fn generate_add(&self, scope: &mut Scope, target: &VariableType, source: &VariableType) -> Vec<Instruction> {
+    fn generate_add(&self, scope: &mut Scope, target: &Variable, source: &Variable) -> Vec<Instruction> {
         let mut instructions = Vec::new();
 
         let registers = scope.register_backup();
@@ -177,33 +164,60 @@ impl ExpressionType {
         instructions
     }
 
-    pub fn generate_value(&self, value: &VariableType) -> Vec<Instruction> {
+    fn generate_not(&self, scope: &mut Scope, source: &Variable) -> Vec<Instruction> {
+        let mut instructions = Vec::new();
+
+        let registers = scope.register_backup();
+
+        instructions.push(Instruction::Comment("Generate source value".to_owned()));
+        let mut source = source.generate(&mut instructions, scope);
+
+        if let Some(mode) = source.get_addressing_mode() {
+            if !mode.is_direct_register() {
+                let new_reg = scope.lock_register().unwrap();
+                instructions.push(Instruction::Mov { source, target: Location::Register(AddressingMode::Immediate(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
+                source = Location::Register(AddressingMode::Immediate(new_reg));
+            }
+        }
+
+        instructions.push(Instruction::Not { source: source.clone(), comment: None });
+        scope.register_restore(registers);
+        scope.last_assigned_location = source.clone();
+
+        if let Some(register) = source.get_register() {
+            scope.mark_register(register);
+        }
+
+        instructions
+    }
+
+    pub fn generate_value(&self, value: &Variable) -> Vec<Instruction> {
         match value {
-            VariableType::Variable(var) => todo!(),
-            VariableType::Number(var) => todo!(),
+            Variable::Variable(var) => todo!(),
+            Variable::Number(var) => todo!(),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum StatementType {
+pub enum Statement {
     Assign {
         name: String,
-        assigne: Box<ExpressionType>
+        assigne: Box<Expression>
     },
 
-    Return(Option<VariableType>)
+    Return(Option<Variable>)
 }
 
-impl StatementType {
+impl Statement {
     pub fn generate(&self, scope: &mut Scope) -> Vec<Instruction> {
         match self {
-            StatementType::Assign { name, assigne } => self.generate_assign(scope, name, assigne),
-            StatementType::Return(expr) => self.generate_return(scope, expr),
+            Statement::Assign { name, assigne } => self.generate_assign(scope, name, assigne),
+            Statement::Return(expr) => self.generate_return(scope, expr),
         }
     }
     
-    pub fn generate_assign(&self, scope: &mut Scope, name: &String, assigne: &Box<ExpressionType>) -> Vec<Instruction> {
+    pub fn generate_assign(&self, scope: &mut Scope, name: &String, assigne: &Box<Expression>) -> Vec<Instruction> {
         let position = match scope.find_variable(&name) {
             Some(index) => index,
             None => {
@@ -230,50 +244,50 @@ impl StatementType {
         instructions
     }
 
-    pub fn generate_return(&self, scope: &mut Scope, expr: &Option<VariableType>) -> Vec<Instruction> {
+    pub fn generate_return(&self, scope: &mut Scope, expr: &Option<Variable>) -> Vec<Instruction> {
         match expr {
-            Some(VariableType::Variable(variable)) => {
+            Some(Variable::Variable(variable)) => {
                 if let Some(position) = scope.find_variable(variable) {
                     return vec![Instruction::Mov { source: scope.last_assigned_location.clone(), target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }]
                 }
                 Vec::new()
             },
-            Some(VariableType::Number(variable)) => vec![Instruction::Mov { source: Location::Imm(Number::I32(*variable)), target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }],
+            Some(Variable::Number(variable)) => vec![Instruction::Mov { source: Location::Imm(Number::I32(*variable)), target: Location::Register(AddressingMode::Immediate(Register::RAX)), comment: Some(format!("return {}", variable)) }],
             None => Vec::default()
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum DefinitionType {
+pub enum Definition {
     Function {
         name: String,
-        parameters: Vec<Box<VariableType>>,
-        body: Vec<Box<StatementType>>
+        parameters: Vec<Box<Variable>>,
+        body: Vec<Box<Statement>>
     }
 }
 
-impl DefinitionType {
-    fn generate(&self) -> BackendType {
+impl Definition {
+    fn generate(&self) -> Backend {
         match self {
-            DefinitionType::Function { name, parameters, body } => self.generate_function(name, parameters, body)
+            Definition::Function { name, parameters, body } => self.generate_function(name, parameters, body)
         }
     }
 
-    fn generate_function(&self, name: &String, parameters: &Vec<Box<VariableType>>, body: &Vec<Box<StatementType>>) -> BackendType {
+    fn generate_function(&self, name: &String, parameters: &Vec<Box<Variable>>, body: &Vec<Box<Statement>>) -> Backend {
         let mut instructions = Vec::new();
         let mut scope = Scope::default();
         for item in body.iter() {
             instructions.append(&mut item.generate(&mut scope));
         }
 
-        BackendType::Function { name: name.clone(), instructions }
+        Backend::Function { name: name.clone(), instructions }
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct AstApplication {
-    pub asts: Vec<Box<DefinitionType>>
+    pub asts: Vec<Box<Definition>>
 }
 
 #[derive(Debug, Clone, Default)]

@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, fmt::{Debug, Display}, io::BufReader};
+use std::{borrow::Borrow, fmt::{Debug, Display}};
 
 use strum_macros::EnumDiscriminants;
 
@@ -77,6 +77,10 @@ pub enum Instruction {
         source: Location,
         comment: Option<String>
     },
+    Neg {
+        source: Location,
+        comment: Option<String>
+    },
     Mov {
         source: Location,
         target: Location,
@@ -107,7 +111,7 @@ impl AsmGenerate for Backend {
 impl Backend {
     fn generate_function(&self, context: &mut ApplicationContext, buffer: &mut String, name: &String, instructions: &Vec<Instruction>) {
         buffer.push_str(name);
-        buffer.push_str(":");
+        buffer.push(':');
         buffer.push_str("\r\n");
 
         // Function begin
@@ -127,10 +131,11 @@ impl Backend {
         self.print_inst(Instruction::Ret, context, buffer);
     }
 
-    fn generate_instruction(&self, context: &mut ApplicationContext, buffer: &mut String, inst: &Instruction) {
+    fn generate_instruction(&self, _: &mut ApplicationContext, buffer: &mut String, inst: &Instruction) {
         match inst {
-            Instruction::Add { source: source, target, comment } => self.do_add(source, target, comment, buffer),
+            Instruction::Add { source, target, comment } => self.do_add(source, target, comment, buffer),
             Instruction::Not { source, comment } => self.do_not(source, comment, buffer),
+            Instruction::Neg { source, comment } => self.do_neg(source, comment, buffer),
             Instruction::Mov { source, target, comment } => self.do_mov(source, target, comment, buffer),
             Instruction::Ret => self.do_ret(buffer),
             Instruction::Push(register) => self.do_push(register, buffer),
@@ -145,11 +150,11 @@ impl Backend {
     }
     
     fn do_push(&self, register: &AddressingMode, buffer: &mut String) {
-        buffer.push_str(&format!("push{} {}", self.get_suffix(&register), register.to_string().to_lowercase()));
+        buffer.push_str(&format!("push{} {}", self.get_suffix(register), register.to_string().to_lowercase()));
     }
     
     fn do_pop(&self, register: &AddressingMode, buffer: &mut String) {
-        buffer.push_str(&format!("pop{} {}", self.get_suffix(&register), register.to_string().to_lowercase()));
+        buffer.push_str(&format!("pop{} {}", self.get_suffix(register), register.to_string().to_lowercase()));
     }
     
     fn do_comment(&self, comment: &String, buffer: &mut String) {
@@ -158,8 +163,8 @@ impl Backend {
     
     fn do_add(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add{} ${}, {} {}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add{} {}, {} {}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("add{} ${}, {} {}", self.get_suffix(register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("add{} {}, {} {}", self.get_suffix_from_registers(source_reg, target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             value => panic!("unsupported ({:?})", value)
         }
     }
@@ -171,10 +176,17 @@ impl Backend {
         }
     }
     
+    fn do_neg(&self, source: &Location, comment: &Option<String>, buffer: &mut String) {
+        match source {
+            Location::Register(source_reg) => buffer.push_str(&format!("neg {} {}", source_reg.to_string().to_lowercase(), self.get_comment(comment))),
+            _ => panic!("unsupported")
+        }
+    }
+    
     fn do_mov(&self, source: &Location, target: &Location, comment: &Option<String>, buffer: &mut String) {
         match (source, target) {
-            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("mov{} ${}, {} {}", self.get_suffix(&register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
-            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("mov{} {}, {} {}", self.get_suffix_from_registers(&source_reg, &target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Imm(imm), Location::Register(register)) => buffer.push_str(&format!("mov{} ${}, {} {}", self.get_suffix(register), imm, register.to_string().to_lowercase(), self.get_comment(comment))),
+            (Location::Register(source_reg), Location::Register(target_reg)) => buffer.push_str(&format!("mov{} {}, {} {}", self.get_suffix_from_registers(source_reg, target_reg), source_reg.to_string().to_lowercase(), target_reg.to_string().to_lowercase(), self.get_comment(comment))),
             _ => panic!("unsupported")
         }
     }
@@ -205,7 +217,7 @@ impl Backend {
         let mode2_register = mode2.get_register();
 
         let mode1_register_type = get_register_type(mode1_register);
-        let mode2_register_type = get_register_type(mode1_register);
+        let mode2_register_type = get_register_type(mode2_register);
 
         match mode1_register_type != mode2_register_type {
             true => "l",

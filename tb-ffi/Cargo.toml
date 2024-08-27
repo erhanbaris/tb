@@ -1,0 +1,16 @@
+[package]
+name = "tb-ffi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tb-core = { path = "../tb-core" }
+tb-builder = { path = "../tb-builder" }
+
+[build-dependencies]
+cbindgen = "0.24.0"
+
+[lib]
+name = "tb"
+path = "src/lib.rs"
+crate-type =["cdylib", "staticlib"]

@@ -1,16 +1,2 @@
-[package]
-name = "tb"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-thiserror = "1.0.40"
-rstest = "0.22.0"
-strum = "0.26"
-strum_macros = "0.26"
-os-version = "0.2.0"
-log = "0.4.22"
-simplelog = "^0.12.2"
-libc = "0.2.0"
+[workspace]
+members = [ "tb", "tb-builder","tb-core", "tb-ffi"]

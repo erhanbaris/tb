@@ -1,0 +1,9 @@
+[package]
+name = "tb-target-x86-64"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tb-core = { path = "../tb-core" }
+strum = "0.26"
+strum_macros = "0.26"

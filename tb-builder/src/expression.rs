@@ -1,16 +1,16 @@
-use tb_core::ast::{Expression, ExpressionDiscriminant, Variable};
+use tb_core::types::{Expression, ExpressionDiscriminant, Value};
 
 use super::BuilderGenerate;
 
 #[derive(Debug, Clone)]
 pub struct ExpressionType {
     expression_type: ExpressionDiscriminant,
-    target: Option<Box<Variable>>,
-    source: Option<Box<Variable>>
+    target: Option<Box<Value>>,
+    source: Option<Box<Value>>
 }
 
 impl ExpressionType {
-    pub fn add(source: Variable, target: Variable) -> Self {
+    pub fn add(source: Value, target: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Add,
             source: Some(Box::new(source)),
@@ -18,7 +18,7 @@ impl ExpressionType {
         }
     }
     
-    pub fn not(source: Variable) -> Self {
+    pub fn not(source: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Not,
             source: Some(Box::new(source)),
@@ -26,7 +26,7 @@ impl ExpressionType {
         }
     }
     
-    pub fn neg(source: Variable) -> Self {
+    pub fn neg(source: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Neg,
             source: Some(Box::new(source)),
@@ -34,7 +34,7 @@ impl ExpressionType {
         }
     }
     
-    pub fn value(source: Variable) -> Self {
+    pub fn value(source: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Value,
             source: Some(Box::new(source)),

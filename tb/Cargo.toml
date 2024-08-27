@@ -6,10 +6,6 @@ edition = "2021"
 [dependencies]
 tb-core = { path = "../tb-core" }
 tb-builder = { path = "../tb-builder" }
-thiserror = "1.0.40"
-rstest = "0.22.0"
-strum = "0.26"
-strum_macros = "0.26"
-os-version = "0.2.0"
+tb-target-x86-64 = { path = "../tb-target-x86-64" }
 log = "0.4.22"
 simplelog = "^0.12.2"

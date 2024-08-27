@@ -1,41 +1,12 @@
-use std::{borrow::Borrow, fmt::{Debug, Display}};
+use std::{borrow::Borrow, fmt::Debug};
 
 use strum_macros::EnumDiscriminants;
+use tb_core::types::{ApplicationContext, Number};
 
-use crate::{register::{get_register_type, AddressingMode, Register}, tool::{os_defs, OsSpecificDefs}};
+use crate::register::{get_register_type, AddressingMode, Register};
 
 pub trait AsmGenerate {
     fn generate(&self, context: &mut ApplicationContext, buffer: &mut String);
-}
-
-#[derive(Debug)]
-#[derive(Copy, Clone)]
-pub enum Number {
-    I8(i8),
-    U8(u8),
-    I16(i16),
-    U16(u16),
-    I32(i32),
-    U32(u32),
-    I64(i64),
-    U64(u64),
-    Float(f32),
-}
-
-impl Display for Number {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Number::I8(num) => write!(f, "{}", num),
-            Number::U8(num) => write!(f, "{}", num),
-            Number::I16(num) => write!(f, "{}", num),
-            Number::U16(num) => write!(f, "{}", num),
-            Number::I32(num) => write!(f, "{}", num),
-            Number::U32(num) => write!(f, "{}", num),
-            Number::I64(num) => write!(f, "{}", num),
-            Number::U64(num) => write!(f, "{}", num),
-            Number::Float(num) => write!(f, "{}", num),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -44,6 +15,12 @@ pub enum Location {
     Memory(i64),
     Register(AddressingMode),
     Imm(Number)
+}
+
+impl Default for Location {
+    fn default() -> Self {
+        Location::Imm(Number::I32(0))
+    }
 }
 
 impl Location {
@@ -222,18 +199,6 @@ impl Backend {
         match mode1_register_type != mode2_register_type {
             true => "l",
             false => ""
-        }
-    }
-}
-
-pub struct ApplicationContext {
-    pub os_specific_defs: Box<dyn OsSpecificDefs>
-}
-
-impl Default for ApplicationContext {
-    fn default() -> Self {
-        Self {
-            os_specific_defs: os_defs()
         }
     }
 }

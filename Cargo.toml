@@ -1,2 +1,2 @@
 [workspace]
-members = [ "tb", "tb-builder","tb-core", "tb-ffi"]
+members = [ "tb", "tb-builder","tb-core", "tb-ffi", "tb-target-x86-64"]

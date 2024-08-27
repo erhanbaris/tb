@@ -1,4 +1,4 @@
-use tb_core::{ast::{Definition, Statement, Variable}, tool::os_defs};
+use tb_core::{types::{Definition, Statement, Value}, tool::os_defs};
 
 use super::{expression::ExpressionType, BuilderGenerate};
 
@@ -6,8 +6,8 @@ use super::{expression::ExpressionType, BuilderGenerate};
 #[derive(Debug, Clone, Default)]
 pub struct FunctionType {
     name: String,
-    parameters: Vec<Box<Variable>>,
-    body: Vec<Box<Statement>>
+    parameters: Vec<Value>,
+    body: Vec<Statement>
 }
 
 impl FunctionType {
@@ -29,30 +29,30 @@ impl FunctionType {
     }
 
     pub fn add_variable_parameter(&mut self, name: &str) {
-        self.parameters.push(Box::new(Variable::Variable(name.to_owned())));
+        self.parameters.push(Value::Variable(name.to_owned()));
     }
 
     pub fn add_number_parameter(&mut self, value: i32) {
-        self.parameters.push(Box::new(Variable::Number(value)));
+        self.parameters.push(Value::Number(value));
     }
 
     pub fn add_assign(&mut self, name: &str, expression: ExpressionType) {
-        self.body.push(Box::new(Statement::Assign {
+        self.body.push(Statement::Assign {
             name: name.to_owned(),
-            assigne: Box::new(expression.convert())
-        }))
+            assigne: expression.convert()
+        })
     }
 
     pub fn add_return(&mut self) {
-        self.body.push(Box::new(Statement::Return(None)))
+        self.body.push(Statement::Return(None))
     }
 
     pub fn add_return_number(&mut self, value: i32) {
-        self.body.push(Box::new(Statement::Return(Some(Variable::Number(value)))))
+        self.body.push(Statement::Return(Some(Value::Number(value))))
     }
 
     pub fn add_return_variable(&mut self, name: &str) {
-        self.body.push(Box::new(Statement::Return(Some(Variable::Variable(name.to_owned())))))
+        self.body.push(Statement::Return(Some(Value::Variable(name.to_owned()))))
     }
 }
 

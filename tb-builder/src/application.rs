@@ -1,4 +1,6 @@
-use tb_core::types::{ApplicationContext, AssemblyGenerator, Definition};
+use std::fmt::Debug;
+
+use tb_core::types::{AssemblyGenerator, Definition};
 
 use super::{BuilderGenerate, FunctionType};
 
@@ -14,7 +16,6 @@ impl ApplicationType {
 
     pub fn build<A: AssemblyGenerator>(self) -> String {
         let application = A::default();
-        let context = ApplicationContext::default();
-        application.generate(self.definitions.clone(), context)
+        application.generate(self.definitions.clone())
     }
 }

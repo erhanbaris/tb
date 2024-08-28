@@ -1,9 +1,9 @@
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use strum_macros::EnumDiscriminants;
 
-use crate::tool::{os_defs, OsSpecificDefs};
+use crate::{syntax::AsmStructure, tool::{os_defs, OsSpecificDefs}};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -46,14 +46,16 @@ pub enum Definition {
     }
 }
 
-pub struct ApplicationContext {
-    pub os_specific_defs: Box<dyn OsSpecificDefs>
+pub struct ApplicationContext<I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString> {
+    pub os_specific_defs: Box<dyn OsSpecificDefs>,
+    pub abstract_asms: Vec<AsmStructure<I, R>>
 }
 
-impl Default for ApplicationContext {
+impl<I, R> Default for ApplicationContext<I, R> where I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString {
     fn default() -> Self {
         Self {
-            os_specific_defs: os_defs()
+            os_specific_defs: os_defs(),
+            abstract_asms: Default::default()
         }
     }
 }
@@ -89,5 +91,5 @@ impl Display for Number {
 }
 
 pub trait AssemblyGenerator: Default {
-    fn generate(&self, definitions: Vec<Definition>, context: ApplicationContext) -> String;
+    fn generate(&self, definitions: Vec<Definition>) -> String;
 }

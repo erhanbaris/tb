@@ -1,25 +1,25 @@
 use tb_core::types::{Number, Value};
 
-use crate::{backend::{Instruction, Location}, register::{AddressingMode, Register}, X86Store};
+use crate::{register::Register, X86AddressingMode, instruction::X86Instruction, X86Location, X86Store};
 
 pub struct X86ValueGenerator;
 
 impl X86ValueGenerator {
-    pub fn generate(variable: Value, instructions: &mut Vec<Instruction>, scope: &mut X86Store) -> Location {
+    pub fn generate(variable: Value, instructions: &mut Vec<X86Instruction>, scope: &mut X86Store) -> X86Location {
         match variable {
             Value::Variable(variable) => match scope.find_variable(&variable) {
-                Some(position) => Location::Register(AddressingMode::create_based(position as i32 * -4, Register::RBP)),
+                Some(position) => X86Location::Register(X86AddressingMode::create_based(position as i32 * -4, Register::RBP)),
                 None => panic!("variable not found")
             },
             Value::Number(num) => {
                 let position = scope.add_temp_variable();
-                let stack = Location::Register(AddressingMode::Based(position as i32 * -4, Register::RBP));
+                let stack = X86Location::Register(X86AddressingMode::Based(position as i32 * -4, Register::RBP));
 
-                instructions.push(Instruction::Mov { source: Location::Imm(Number::I32(num)), target: stack, comment: None });
+                instructions.push(X86Instruction::Mov { source: X86Location::Imm(Number::I32(num)), target: stack, comment: None });
 
                 let register = scope.lock_register().unwrap();
-                instructions.push(Instruction::Mov { source: stack, target: Location::Register(AddressingMode::Immediate(register)), comment: None });
-                Location::Register(AddressingMode::Immediate(register))
+                instructions.push(X86Instruction::Mov { source: stack, target: X86Location::Register(X86AddressingMode::Immediate(register)), comment: None });
+                X86Location::Register(X86AddressingMode::Immediate(register))
             },
         }
     }

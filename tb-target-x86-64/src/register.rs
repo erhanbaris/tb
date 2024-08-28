@@ -51,51 +51,6 @@ impl Display for Register {
     }
 }
 
-#[derive(Debug)]
-#[derive(Copy, Clone)]
-pub enum AddressingMode {
-    Immediate(Register),
-    Indirect(Register),
-    Based(i32, Register),
-    Complex // todo: later
-}
-
-impl Display for AddressingMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AddressingMode::Immediate(reg) => write!(f, "%{:?}", reg),
-            AddressingMode::Indirect(reg) => write!(f, "(%{:?})", reg),
-            AddressingMode::Based(num, reg) => write!(f, "{}(%{:?})", num, reg),
-            AddressingMode::Complex => todo!(),
-        }
-    }
-}
-
-impl AddressingMode {
-    pub fn create_based(base: i32, register: Register) -> Self {
-        match base {
-            0 => AddressingMode::Immediate(register),
-            _ => AddressingMode::Based(base, register)
-        }
-    }
-
-    pub fn get_register(&self) -> Register {
-        match self {
-            AddressingMode::Immediate(register) => *register,
-            AddressingMode::Indirect(register) => *register,
-            AddressingMode::Based(_, register) => *register,
-            AddressingMode::Complex => Register::RAX,
-        }
-    }
-
-    pub fn is_direct_register(&self) -> bool {
-        match self {
-            AddressingMode::Immediate(_) => true,
-            _ => false
-        }
-    }
-}
-
 pub fn get_register_type(register: Register) -> RegisterType {
     REGISTER_TYPES[register as usize]
 }

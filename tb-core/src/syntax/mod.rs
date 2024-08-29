@@ -22,6 +22,7 @@ impl TBSyntaxGenerator {
 #[derive(Debug, Clone)]
 pub enum AsmStructure<I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString> {
     Branch(String),
+    BranchFinished,
     Comment(String),
     Instruction(AbstractInstruction<I, R>)
 }

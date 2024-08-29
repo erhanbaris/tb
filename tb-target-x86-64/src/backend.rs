@@ -61,15 +61,16 @@ impl Backend {
             X86Instruction::Not { source, comment } => self.do_not(source, comment, buffer),
             X86Instruction::Neg { source, comment } => self.do_neg(source, comment, buffer),
             X86Instruction::Mov { source, target, comment } => self.do_mov(source, target, comment, buffer),
-            X86Instruction::Ret => self.do_ret(buffer),
+            X86Instruction::Ret => self.do_ret(context, buffer),
             X86Instruction::Push(register) => self.do_push(register, buffer),
             X86Instruction::Pop(register) => self.do_pop(register, buffer),
-            X86Instruction::Comment(comment) => self.do_comment(comment, buffer)
+            X86Instruction::Comment(comment) => self.do_comment(comment, context, buffer)
         };
         buffer.push_str("\r\n");
     }
 
-    fn do_ret(&self, buffer: &mut String) {
+    fn do_ret(&self, context: &mut X86ApplicationContext, buffer: &mut String) {
+        context.abstract_asms.push(AsmStructure::BranchFinished);
         buffer.push_str("ret");
     }
     
@@ -81,7 +82,8 @@ impl Backend {
         buffer.push_str(&format!("pop{} {}", self.get_suffix(&register.get_addressing_mode().unwrap()), register.get_addressing_mode().unwrap().to_string().to_lowercase()));
     }
     
-    fn do_comment(&self, comment: &str, buffer: &mut String) {
+    fn do_comment(&self, comment: &str, context: &mut X86ApplicationContext, buffer: &mut String) {
+        context.abstract_asms.push(AsmStructure::Comment(comment.to_owned()));
         buffer.push_str(&self.get_comment(&Some(comment.to_owned())));
     }
     

@@ -2,10 +2,10 @@ use tb_core::types::{Number, Value};
 
 use crate::{register::Register, X86AddressingMode, instruction::X86Instruction, X86Location, X86Store};
 
-pub struct X86ValueGenerator;
+pub struct X86ValueCompiler;
 
-impl X86ValueGenerator {
-    pub fn generate(variable: Value, instructions: &mut Vec<X86Instruction>, scope: &mut X86Store) -> X86Location {
+impl X86ValueCompiler {
+    pub fn compile(variable: Value, instructions: &mut Vec<X86Instruction>, scope: &mut X86Store) -> X86Location {
         match variable {
             Value::Variable(variable) => match scope.find_variable(&variable) {
                 Some(position) => X86Location::Register(X86AddressingMode::create_based(position as i32 * -4, Register::RBP)),

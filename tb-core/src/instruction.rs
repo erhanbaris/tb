@@ -2,17 +2,18 @@ use std::string::ToString;
 use std::fmt::Debug;
 
 use crate::location::Location;
+use crate::types::RegisterTrait;
 
 #[derive(Debug, Clone)]
-pub struct AbstractInstruction<I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString> {
+pub struct AbstractInstruction<I: InstructionTrait> {
     pub inst: I,
-    pub target: Option<Location<R>>,
-    pub source1: Option<Location<R>>,
-    pub source2: Option<Location<R>>,
+    pub target: Option<Location<I::REG>>,
+    pub source1: Option<Location<I::REG>>,
+    pub source2: Option<Location<I::REG>>,
     pub comment: Option<String>
 }
 
-impl<I, R> AbstractInstruction<I, R> where I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString {
+impl<I> AbstractInstruction<I> where I: InstructionTrait {
     pub fn simple(inst: I) -> Self {
         Self { inst, target: None, source1: None, source2: None, comment: None }
     }
@@ -21,27 +22,35 @@ impl<I, R> AbstractInstruction<I, R> where I: Debug + ToString + Clone, R: Clone
         Self { inst, target: None, source1: None, source2: None, comment }
     }
 
-    pub fn target(inst: I, target: Location<R>) -> Self {
+    pub fn target(inst: I, target: Location<I::REG>) -> Self {
         Self { inst, target: Some(target), source1: None, source2: None, comment: None }
     }
 
-    pub fn target_with_comment(inst: I, target: Location<R>, comment: Option<String>) -> Self {
+    pub fn target_with_comment(inst: I, target: Location<I::REG>, comment: Option<String>) -> Self {
         Self { inst, target: Some(target), source1: None, source2: None, comment }
     }
 
-    pub fn target_source(inst: I, target: Location<R>, source: Location<R>) -> Self {
+    pub fn target_source(inst: I, target: Location<I::REG>, source: Location<I::REG>) -> Self {
         Self { inst, target: Some(target), source1: Some(source), source2: None, comment: None }
     }
 
-    pub fn target_source_with_comment(inst: I, target: Location<R>, source: Location<R>, comment: Option<String>) -> Self {
+    pub fn target_source_with_comment(inst: I, target: Location<I::REG>, source: Location<I::REG>, comment: Option<String>) -> Self {
         Self { inst, target: Some(target), source1: Some(source), source2: None, comment }
     }
 
-    pub fn target_source2(inst: I, target: Location<R>, source1: Location<R>, source2: Location<R>) -> Self {
+    pub fn target_source2(inst: I, target: Location<I::REG>, source1: Location<I::REG>, source2: Location<I::REG>) -> Self {
         Self { inst, target: Some(target), source1: Some(source1), source2: Some(source2), comment: None }
     }
 
-    pub fn target_source2_with_comment(inst: I, target: Location<R>, source1: Location<R>, source2: Location<R>, comment: Option<String>) -> Self {
+    pub fn target_source2_with_comment(inst: I, target: Location<I::REG>, source1: Location<I::REG>, source2: Location<I::REG>, comment: Option<String>) -> Self {
         Self { inst, target: Some(target), source1: Some(source1), source2: Some(source2), comment }
     }
+}
+
+pub trait InstructionTrait: Debug + ToString + Clone {
+    type IT: Debug + ToString + Clone;
+    type REG: RegisterTrait;
+    
+    fn convert(self) -> AbstractInstruction<Self>;
+    fn name(&self) -> String;
 }

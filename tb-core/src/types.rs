@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display};
 
 use strum_macros::EnumDiscriminants;
 
-use crate::{syntax::AsmStructure, tool::{os_defs, OsSpecificDefs}};
+use crate::{instruction::InstructionTrait, syntax::AsmStructure, tool::{os_defs, OsSpecificDefs}};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -15,6 +15,10 @@ pub enum Value {
 #[strum_discriminants(name(ExpressionDiscriminant))]
 pub enum Expression {
     Add {
+        target: Value,
+        source: Value
+    },
+    Sub {
         target: Value,
         source: Value
     },
@@ -46,12 +50,12 @@ pub enum Definition {
     }
 }
 
-pub struct ApplicationContext<I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString> {
+pub struct ApplicationContext<I: InstructionTrait> {
     pub os_specific_defs: Box<dyn OsSpecificDefs>,
-    pub abstract_asms: Vec<AsmStructure<I, R>>
+    pub abstract_asms: Vec<AsmStructure<I>>
 }
 
-impl<I, R> Default for ApplicationContext<I, R> where I: Debug + ToString + Clone, R: Clone + PartialEq + Debug + ToString {
+impl<I> Default for ApplicationContext<I> where I: InstructionTrait {
     fn default() -> Self {
         Self {
             os_specific_defs: os_defs(),
@@ -92,4 +96,17 @@ impl Display for Number {
 
 pub trait AssemblyGenerator: Default {
     fn generate(&self, definitions: Vec<Definition>) -> String;
+}
+
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum RegisterType {
+    _8Bit,
+    _16Bit,
+    _32Bit,
+    _64Bit
+}
+
+pub trait RegisterTrait: Clone + PartialEq + Debug + ToString {
+    fn get_register_type(&self) -> RegisterType;
 }

@@ -1,11 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum RegisterType {
-    _16Bit,
-    _32Bit,
-    _64Bit
-}
+use tb_core::types::{RegisterTrait, RegisterType};
 
 #[repr(usize)]
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -15,6 +10,12 @@ pub enum Register {
     RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP, R8, R9, R10, R11, R12, R13, R14, R15, // Quadword Registers
 
     LASTELEMENT
+}
+
+impl RegisterTrait for Register {
+    fn get_register_type(&self) -> RegisterType {
+        REGISTER_TYPES[*self as usize]
+    }
 }
 
 pub const REGISTER_OPCODES: [u8; 49] = [

@@ -17,6 +17,14 @@ impl ExpressionType {
             target: Some(Box::new(target))
         }
     }
+
+    pub fn sub(source: Value, target: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::Sub,
+            source: Some(Box::new(source)),
+            target: Some(Box::new(target))
+        }
+    }
     
     pub fn not(source: Value) -> Self {
         Self {
@@ -55,6 +63,10 @@ impl BuilderGenerate for ExpressionType {
     fn convert(self) -> Self::Output {
         match self.expression_type {
             ExpressionDiscriminant::Add => Expression::Add {
+                source: *self.source.unwrap(),
+                target: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::Sub => Expression::Sub {
                 source: *self.source.unwrap(),
                 target: *self.target.unwrap()
             },

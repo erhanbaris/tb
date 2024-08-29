@@ -2,20 +2,20 @@ use tb_core::types::{Expression, Number, Statement, Value};
 
 use crate::{register::Register, X86AddressingMode, instruction::X86Instruction, X86Location, X86Store};
 
-use super::expression::X86ExpressionGenerator;
+use super::expression::X86ExpressionCompiler;
 
-pub struct X86StatementGenerator;
+pub struct X86StatementCompiler;
 
 
-impl X86StatementGenerator {
-    pub fn generate(statement: Statement, scope: &mut X86Store) -> Vec<X86Instruction> {
+impl X86StatementCompiler {
+    pub fn compile(statement: Statement, scope: &mut X86Store) -> Vec<X86Instruction> {
         match statement {
-            Statement::Assign { name, assigne } => Self::generate_assign(scope, name, assigne),
-            Statement::Return(expr) => Self::generate_return(scope, expr),
+            Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne),
+            Statement::Return(expr) => Self::compile_return(scope, expr),
         }
     }
     
-    fn generate_assign(scope: &mut X86Store, name: String, assigne: Expression) -> Vec<X86Instruction> {
+    fn compile_assign(scope: &mut X86Store, name: String, assigne: Expression) -> Vec<X86Instruction> {
         let position = match scope.find_variable(&name) {
             Some(index) => index,
             None => scope.add_variable(&name)
@@ -23,7 +23,7 @@ impl X86StatementGenerator {
 
         let registers = scope.register_backup();
 
-        let mut instructions = X86ExpressionGenerator::generate(assigne, scope);
+        let mut instructions = X86ExpressionCompiler::compile(assigne, scope);
 
         if let Some(mode) = scope.get_last_assigned_location().get_addressing_mode() {
             if !mode.is_direct_register() {
@@ -39,7 +39,7 @@ impl X86StatementGenerator {
         instructions
     }
 
-    fn generate_return(scope: &mut X86Store, expr: Option<Value>) -> Vec<X86Instruction> {
+    fn compile_return(scope: &mut X86Store, expr: Option<Value>) -> Vec<X86Instruction> {
         match expr {
             Some(Value::Variable(variable)) => {
                 if let Some(_position) = scope.find_variable(&variable) {

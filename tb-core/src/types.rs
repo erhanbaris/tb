@@ -22,6 +22,14 @@ pub enum Expression {
         target: Value,
         source: Value
     },
+    Div {
+        divider: Value,
+        divided: Value
+    },
+    Modulo {
+        divider: Value,
+        divided: Value
+    },
     Not {
         source: Value
     },
@@ -37,7 +45,6 @@ pub enum Statement {
         name: String,
         assigne: Expression
     },
-
     Return(Option<Value>)
 }
 
@@ -76,6 +83,7 @@ pub enum Number {
     I64(i64),
     U64(u64),
     Float(f32),
+    Bool(bool),
 }
 
 impl Display for Number {
@@ -90,6 +98,10 @@ impl Display for Number {
             Number::I64(num) => write!(f, "{}", num),
             Number::U64(num) => write!(f, "{}", num),
             Number::Float(num) => write!(f, "{}", num),
+            Number::Bool(val) => write!(f, "{}", match val {
+                true => 1,
+                false => 0
+            }),
         }
     }
 }

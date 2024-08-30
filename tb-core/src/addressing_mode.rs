@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display};
 #[derive(Debug)]
 #[derive(Copy, Clone)]
 pub enum AddressingMode<R: Clone + PartialEq + Debug> {
-    Immediate(R),
+    Direct(R),
     Indirect(R),
     Based(i32, R)
 }
@@ -13,7 +13,7 @@ pub enum AddressingMode<R: Clone + PartialEq + Debug> {
 impl<R> Display for AddressingMode<R> where R: Clone + PartialEq + Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AddressingMode::Immediate(reg) => write!(f, "%{:?}", reg),
+            AddressingMode::Direct(reg) => write!(f, "%{:?}", reg),
             AddressingMode::Indirect(reg) => write!(f, "(%{:?})", reg),
             AddressingMode::Based(num, reg) => write!(f, "{}(%{:?})", num, reg)
         }
@@ -23,20 +23,20 @@ impl<R> Display for AddressingMode<R> where R: Clone + PartialEq + Debug {
 impl<R> AddressingMode<R> where R: Clone + PartialEq + Debug {
     pub fn create_based(base: i32, register: R) -> Self {
         match base {
-            0 => AddressingMode::Immediate(register),
+            0 => AddressingMode::Direct(register),
             _ => AddressingMode::Based(base, register)
         }
     }
 
     pub fn get_register(&self) -> R {
         match self {
-            AddressingMode::Immediate(register) => register.clone(),
+            AddressingMode::Direct(register) => register.clone(),
             AddressingMode::Indirect(register) => register.clone(),
             AddressingMode::Based(_, register) => register.clone(),
         }
     }
 
     pub fn is_direct_register(&self) -> bool {
-        matches!(self, AddressingMode::Immediate(_))
+        matches!(self, AddressingMode::Direct(_))
     }
 }

@@ -12,7 +12,7 @@ impl AssemblyGenerator for X86AssemblyGenerator{
         let mut application = Application::default();
         
         for item in definitions.into_iter() {
-            application.items.push(X86DefinitionCompiler::compile(item));
+            application.items.push(X86DefinitionCompiler::compile(item, &mut context));
         }
 
         application.generate(&mut context);

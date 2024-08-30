@@ -22,8 +22,8 @@ impl Backend {
         context.abstract_asms.push(AsmStructure::Branch(name.to_owned()));
 
         // Function begin
-        self.generate_instruction(X86Instruction::Push(X86Location::Register(X86AddressingMode::Immediate(Register::RBP))), context);
-        self.generate_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Immediate(Register::RSP)), target: X86Location::Register(X86AddressingMode::Immediate(Register::RBP)), comment: None }, context);
+        self.generate_instruction(X86Instruction::Push(X86Location::Register(X86AddressingMode::Direct(Register::RBP))), context);
+        self.generate_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), target: X86Location::Register(X86AddressingMode::Direct(Register::RBP)), comment: None }, context);
 
         context.abstract_asms.push(AsmStructure::Comment("function body begin".to_owned()));
 
@@ -33,8 +33,8 @@ impl Backend {
         context.abstract_asms.push(AsmStructure::Comment("function body end".to_owned()));
 
         // Function end
-        self.generate_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Immediate(Register::RBP)), target: X86Location::Register(X86AddressingMode::Immediate(Register::RSP)), comment: None }, context);
-        self.generate_instruction(X86Instruction::Pop(X86Location::Register(X86AddressingMode::Immediate(Register::RBP))), context);
+        self.generate_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(Register::RBP)), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None }, context);
+        self.generate_instruction(X86Instruction::Pop(X86Location::Register(X86AddressingMode::Direct(Register::RBP))), context);
         self.generate_instruction(X86Instruction::Ret, context);
     }
 

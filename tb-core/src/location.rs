@@ -19,7 +19,7 @@ impl<R> Default for Location<R> where R: Clone + PartialEq + Debug {
 impl<R> Location<R> where R: Clone + PartialEq + Debug {
     pub fn get_register(&self) -> Option<R> {
         match self {
-            Location::Register(AddressingMode::Immediate(register)) => Some(register.clone()),
+            Location::Register(AddressingMode::Direct(register)) => Some(register.clone()),
             Location::Register(AddressingMode::Indirect(register)) => Some(register.clone()),
             Location::Register(AddressingMode::Based(_, register)) => Some(register.clone()),
             _ => None

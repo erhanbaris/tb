@@ -13,7 +13,7 @@ pub struct X86StoreDefaultRegisters;
 
 impl StoreDefaultRegisters<Register> for X86StoreDefaultRegisters {
     fn initialize() -> Vec<(Register, bool)> {
-        vec![(Register::RDX, true), (Register::RCX, true), (Register::R8, true), (Register::R9, true), (Register::RDI, true)]
+        vec![(Register::EDX, true), (Register::ECX, true), (Register::R8D, true), (Register::R9D, true), (Register::R10D, true), (Register::EDI, true)]
     }
 }
 

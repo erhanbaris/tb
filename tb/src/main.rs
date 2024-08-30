@@ -10,9 +10,11 @@ fn main() {
     let _ = CombinedLogger::init(vec![TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto)]);
 
     let mut main_func = FunctionType::main();
-    main_func.add_assign("test1", ExpressionType::sub(Value::Number(1), Value::Number(10)));
-    //main_func.add_return_number(55);
-    main_func.add_return_variable("test1");
+    main_func.add_assign("test1", ExpressionType::add(Value::Number(10), Value::Number(10)));
+    main_func.add_assign("test2", ExpressionType::add(Value::Number(1), Value::Number(2)));
+    main_func.add_assign("actual", ExpressionType::modulo(Value::Variable("test1".to_owned()), Value::Variable("test2".to_owned())));
+
+    main_func.add_return_variable("actual");
 
     let mut application_type = ApplicationType::default();
     application_type.add_function(main_func);

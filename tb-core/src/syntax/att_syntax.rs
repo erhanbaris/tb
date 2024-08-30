@@ -45,7 +45,7 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         match location {
             Location::Memory(memory) => buffer.push_str(&format!("{:#01x}", memory)),
             Location::Register(mode) => match mode {
-                AddressingMode::Immediate(reg) => buffer.push_str(&format!("%{}", reg.to_string().to_lowercase())),
+                AddressingMode::Direct(reg) => buffer.push_str(&format!("%{}", reg.to_string().to_lowercase())),
                 AddressingMode::Indirect(reg) => buffer.push_str(&format!("(%{})", reg.to_string().to_lowercase())),
                 AddressingMode::Based(num, reg) => buffer.push_str(&format!("{}(%{})", num, reg.to_string().to_lowercase())),
             },
@@ -110,7 +110,7 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
 
     fn get_suffix(&self, mode: &AddressingMode<I::REG>) -> &str {
         match mode {
-            AddressingMode::Immediate(_) => "",
+            AddressingMode::Direct(_) => "",
             AddressingMode::Indirect(_) => "q",
             AddressingMode::Based(_, _) => "q",
         }

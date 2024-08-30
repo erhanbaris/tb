@@ -25,6 +25,22 @@ impl ExpressionType {
             target: Some(Box::new(target))
         }
     }
+
+    pub fn div(divided: Value, divider: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::Div,
+            source: Some(Box::new(divider)),
+            target: Some(Box::new(divided))
+        }
+    }
+
+    pub fn modulo(divided: Value, divider: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::Modulo,
+            source: Some(Box::new(divider)),
+            target: Some(Box::new(divided))
+        }
+    }
     
     pub fn not(source: Value) -> Self {
         Self {
@@ -69,6 +85,14 @@ impl BuilderGenerate for ExpressionType {
             ExpressionDiscriminant::Sub => Expression::Sub {
                 source: *self.source.unwrap(),
                 target: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::Div => Expression::Div {
+                divider: *self.source.unwrap(),
+                divided: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::Modulo => Expression::Modulo {
+                divider: *self.source.unwrap(),
+                divided: *self.target.unwrap()
             },
             ExpressionDiscriminant::Not => Expression::Not {
                 source: *self.source.unwrap()

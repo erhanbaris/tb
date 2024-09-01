@@ -59,6 +59,16 @@ pub enum X86Instruction {
         target: X86Location,
         comment: Option<String>
     },
+    Shl {
+        source: X86Location,
+        target: X86Location,
+        comment: Option<String>
+    },
+    Shr {
+        source: X86Location,
+        target: X86Location,
+        comment: Option<String>
+    },
     Cdq,
     Push(X86Location),
     Pop(X86Location),
@@ -81,6 +91,8 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::And { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Or { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Xor { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
+            X86Instruction::Shl { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
+            X86Instruction::Shr { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Mov { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Push(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Pop(target) => X86AbstractInstruction::target(self, target),

@@ -15,6 +15,8 @@ impl X86ExpressionCompiler {
             Expression::Mul { target, source } => Self::compile_simple(scope, InstructionType::IMul, target, source),
             Expression::Modulo { divider, divided } => Self::compile_div(scope, divider, divided, Register::EDX),
             Expression::Div { divider, divided } => Self::compile_div(scope, divider, divided, Register::EAX),
+            Expression::ShiftLeft { target, source } => Self::compile_simple(scope, InstructionType::Shl, target, source),
+            Expression::ShiftRight { target, source } => Self::compile_simple(scope, InstructionType::Shr, target, source),
             Expression::BitwiseNot { source } => Self::compile_single(scope, InstructionType::Not, source),
             Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, InstructionType::And, target, source),
             Expression::BitwiseOr { source, target } => Self::compile_simple(scope, InstructionType::Or, target, source),

@@ -90,6 +90,22 @@ impl ExpressionType {
         }
     }
     
+    pub fn shift_left(source: Value, target: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::ShiftLeft,
+            source: Some(Box::new(source)),
+            target: Some(Box::new(target))
+        }
+    }
+    
+    pub fn shift_right(source: Value, target: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::ShiftRight,
+            source: Some(Box::new(source)),
+            target: Some(Box::new(target))
+        }
+    }
+    
     pub fn value(source: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Value,
@@ -129,6 +145,14 @@ impl BuilderGenerate for ExpressionType {
             ExpressionDiscriminant::Modulo => Expression::Modulo {
                 divider: *self.source.unwrap(),
                 divided: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::ShiftLeft => Expression::ShiftLeft {
+                source: *self.source.unwrap(),
+                target: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::ShiftRight => Expression::ShiftRight {
+                source: *self.source.unwrap(),
+                target: *self.target.unwrap()
             },
             ExpressionDiscriminant::BitwiseAnd => Expression::BitwiseAnd {
                 source: *self.source.unwrap(),

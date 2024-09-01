@@ -34,6 +34,14 @@ pub enum Expression {
         divider: Value,
         divided: Value
     },
+    ShiftLeft {
+        target: Value,
+        source: Value
+    },
+    ShiftRight {
+        target: Value,
+        source: Value
+    },
     BitwiseNot {
         source: Value
     },

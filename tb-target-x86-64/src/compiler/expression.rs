@@ -17,7 +17,9 @@ impl X86ExpressionCompiler {
             Expression::Div { divider, divided } => Self::compile_div(scope, divider, divided, Register::EAX),
             Expression::BitwiseNot { source } => Self::compile_single(scope, InstructionType::Not, source),
             Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, InstructionType::And, target, source),
-            Expression::Neg { source } => Self::compile_single(scope, InstructionType::Neg, source),
+            Expression::BitwiseOr { source, target } => Self::compile_simple(scope, InstructionType::Or, target, source),
+            Expression::BitwiseXor { source, target } => Self::compile_simple(scope, InstructionType::Xor, target, source),
+            Expression::BitwiseNeg { source } => Self::compile_single(scope, InstructionType::Neg, source),
             Expression::Value(val) => Self::compile_value(scope, val),
         }
     }
@@ -52,6 +54,8 @@ impl X86ExpressionCompiler {
             InstructionType::Sub => X86Instruction::Sub { source, target, comment: None },
             InstructionType::IMul => X86Instruction::IMul { source, target, comment: None },
             InstructionType::And => X86Instruction::And { source, target, comment: None },
+            InstructionType::Or => X86Instruction::Or { source, target, comment: None },
+            InstructionType::Xor => X86Instruction::Xor { source, target, comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 

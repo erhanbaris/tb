@@ -66,9 +66,25 @@ impl ExpressionType {
         }
     }
     
-    pub fn neg(source: Value) -> Self {
+    pub fn bitwise_or(source: Value, target: Value) -> Self {
         Self {
-            expression_type: ExpressionDiscriminant::Neg,
+            expression_type: ExpressionDiscriminant::BitwiseOr,
+            source: Some(Box::new(source)),
+            target: Some(Box::new(target))
+        }
+    }
+    
+    pub fn bitwise_xor(source: Value, target: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::BitwiseXor,
+            source: Some(Box::new(source)),
+            target: Some(Box::new(target))
+        }
+    }
+    
+    pub fn bitwise_neg(source: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::BitwiseNeg,
             source: Some(Box::new(source)),
             target: None
         }
@@ -118,10 +134,18 @@ impl BuilderGenerate for ExpressionType {
                 source: *self.source.unwrap(),
                 target: *self.target.unwrap()
             },
+            ExpressionDiscriminant::BitwiseOr => Expression::BitwiseOr {
+                source: *self.source.unwrap(),
+                target: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::BitwiseXor => Expression::BitwiseXor {
+                source: *self.source.unwrap(),
+                target: *self.target.unwrap()
+            },
             ExpressionDiscriminant::BitwiseNot => Expression::BitwiseNot {
                 source: *self.source.unwrap()
             },
-            ExpressionDiscriminant::Neg => Expression::Neg {
+            ExpressionDiscriminant::BitwiseNeg => Expression::BitwiseNeg {
                 source: *self.source.unwrap()
             },
             ExpressionDiscriminant::Value => Expression::Value(*self.source.unwrap())

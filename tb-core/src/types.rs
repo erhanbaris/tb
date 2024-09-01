@@ -41,7 +41,15 @@ pub enum Expression {
         target: Value,
         source: Value
     },
-    Neg {
+    BitwiseOr {
+        target: Value,
+        source: Value
+    },
+    BitwiseXor {
+        target: Value,
+        source: Value
+    },
+    BitwiseNeg {
         source: Value
     },
     Value(Value)

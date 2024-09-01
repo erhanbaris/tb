@@ -20,9 +20,6 @@ jobs:
         toolchain: stable
         override: true
     
-    - name: Install GCC
-      uses: egor-tensin/setup-gcc@v1.3
-    
     - name: Check 
       run: cargo check
 
@@ -35,7 +32,10 @@ jobs:
       with:
         toolchain: stable
         override: true
-    
+        
+    - name: Install GCC
+      uses: egor-tensin/setup-gcc@v1.3
+
     - name: Install grcov
       run: |
         rustup component add llvm-tools-preview

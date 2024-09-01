@@ -2,6 +2,7 @@ mod value;
 mod expression;
 mod statement;
 mod definition;
+pub mod error;
 
 pub use value::X86ValueCompiler;
 pub use expression::X86ExpressionCompiler;

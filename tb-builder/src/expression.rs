@@ -50,11 +50,19 @@ impl ExpressionType {
         }
     }
     
-    pub fn not(source: Value) -> Self {
+    pub fn bitwise_not(source: Value) -> Self {
         Self {
-            expression_type: ExpressionDiscriminant::Not,
+            expression_type: ExpressionDiscriminant::BitwiseNot,
             source: Some(Box::new(source)),
             target: None
+        }
+    }
+    
+    pub fn bitwise_and(source: Value, target: Value) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::BitwiseAnd,
+            source: Some(Box::new(source)),
+            target: Some(Box::new(target))
         }
     }
     
@@ -106,7 +114,11 @@ impl BuilderGenerate for ExpressionType {
                 divider: *self.source.unwrap(),
                 divided: *self.target.unwrap()
             },
-            ExpressionDiscriminant::Not => Expression::Not {
+            ExpressionDiscriminant::BitwiseAnd => Expression::BitwiseAnd {
+                source: *self.source.unwrap(),
+                target: *self.target.unwrap()
+            },
+            ExpressionDiscriminant::BitwiseNot => Expression::BitwiseNot {
                 source: *self.source.unwrap()
             },
             ExpressionDiscriminant::Neg => Expression::Neg {

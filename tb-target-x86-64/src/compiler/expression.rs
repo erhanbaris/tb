@@ -15,7 +15,8 @@ impl X86ExpressionCompiler {
             Expression::Mul { target, source } => Self::compile_simple(scope, InstructionType::IMul, target, source),
             Expression::Modulo { divider, divided } => Self::compile_div(scope, divider, divided, Register::EDX),
             Expression::Div { divider, divided } => Self::compile_div(scope, divider, divided, Register::EAX),
-            Expression::Not { source } => Self::compile_single(scope, InstructionType::Not, source),
+            Expression::BitwiseNot { source } => Self::compile_single(scope, InstructionType::Not, source),
+            Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, InstructionType::And, target, source),
             Expression::Neg { source } => Self::compile_single(scope, InstructionType::Neg, source),
             Expression::Value(val) => Self::compile_value(scope, val),
         }
@@ -50,6 +51,7 @@ impl X86ExpressionCompiler {
             InstructionType::Add => X86Instruction::Add { source, target, comment: None },
             InstructionType::Sub => X86Instruction::Sub { source, target, comment: None },
             InstructionType::IMul => X86Instruction::IMul { source, target, comment: None },
+            InstructionType::And => X86Instruction::And { source, target, comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 
@@ -112,8 +114,8 @@ impl X86ExpressionCompiler {
         }
 
         let instruction = match inst {
-            InstructionType::Add => X86Instruction::Neg { source, comment: None },
-            InstructionType::Sub => X86Instruction::Not { source, comment: None },
+            InstructionType::Neg => X86Instruction::Neg { source, comment: None },
+            InstructionType::Not => X86Instruction::Not { source, comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 

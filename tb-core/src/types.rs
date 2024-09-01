@@ -8,7 +8,7 @@ use crate::{instruction::InstructionTrait, syntax::AsmStructure, tool::{os_defs,
 #[derive(Debug, Clone)]
 pub enum Value {
     Variable(String),
-    Number(i32),
+    Number(i64),
 }
 
 #[derive(Debug, Clone, EnumDiscriminants)]
@@ -34,7 +34,11 @@ pub enum Expression {
         divider: Value,
         divided: Value
     },
-    Not {
+    BitwiseNot {
+        source: Value
+    },
+    BitwiseAnd {
+        target: Value,
         source: Value
     },
     Neg {

@@ -2,8 +2,6 @@ mod function;
 mod expression;
 mod application;
 mod block;
-mod if_statement;
-mod condition;
 
 pub use function::FunctionType;
 pub use expression::ExpressionType;

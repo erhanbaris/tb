@@ -44,6 +44,11 @@ pub enum X86Instruction {
         target: X86Location,
         comment: Option<String>
     },
+    And {
+        source: X86Location,
+        target: X86Location,
+        comment: Option<String>
+    },
     Cdq,
     Push(X86Location),
     Pop(X86Location),
@@ -63,6 +68,7 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::IMul { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Not { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
             X86Instruction::Neg { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
+            X86Instruction::And { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Mov { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Push(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Pop(target) => X86AbstractInstruction::target(self, target),

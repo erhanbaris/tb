@@ -20,7 +20,7 @@ impl BlockType {
         self.items.push(Statement::Return(None))
     }
 
-    pub fn add_return_number(&mut self, value: i32) {
+    pub fn add_return_number(&mut self, value: i64) {
         self.items.push(Statement::Return(Some(Value::Number(value))))
     }
 

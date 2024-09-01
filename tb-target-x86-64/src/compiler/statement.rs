@@ -47,7 +47,7 @@ impl X86StatementCompiler {
                     None => Vec::new()
                 }
             },
-            Some(Value::Number(variable)) => vec![X86Instruction::Mov { source: X86Location::Imm(Number::I32(variable)), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", variable)) }],
+            Some(Value::Number(variable)) => vec![X86Instruction::Mov { source: X86Location::Imm(Number::I64(variable)), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", variable)) }],
             None => Vec::default()
         };
 

@@ -30,12 +30,12 @@ impl X86ValueCompiler {
             Value::Number(num) => {
                 match target {
                     Some(target) => {
-                        instructions.push(X86Instruction::Mov { source: X86Location::Imm(Number::I32(num)), target: target.clone(), comment: None });
+                        instructions.push(X86Instruction::Mov { source: X86Location::Imm(Number::I64(num)), target: target.clone(), comment: None });
                         Ok(target)
                     },
                     None => {
                         let register = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
-                        instructions.push(X86Instruction::Mov { source: X86Location::Imm(Number::I32(num)), target: X86Location::Register(X86AddressingMode::Direct(register)), comment: None });
+                        instructions.push(X86Instruction::Mov { source: X86Location::Imm(Number::I64(num)), target: X86Location::Register(X86AddressingMode::Direct(register)), comment: None });
                         Ok(X86Location::Register(X86AddressingMode::Direct(register)))
                     }
                 }

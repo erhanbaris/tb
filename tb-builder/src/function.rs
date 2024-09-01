@@ -34,7 +34,7 @@ impl FunctionType {
         self.parameters.push(Value::Variable(name.to_owned()));
     }
 
-    pub fn add_number_parameter(&mut self, value: i32) {
+    pub fn add_number_parameter(&mut self, value: i64) {
         self.parameters.push(Value::Number(value));
     }
 

@@ -8,7 +8,7 @@ tb-core = { path = "../tb-core" }
 tb-builder = { path = "../tb-builder" }
 
 [build-dependencies]
-cbindgen = "0.26.0"
+cbindgen = "0.27.0"
 
 [lib]
 name = "tb"

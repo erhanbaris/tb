@@ -54,7 +54,6 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
     }
 
     fn generate_instruction(&self, inst: AbstractInstruction<I>, _: &mut ApplicationContext<I>, buffer: &mut String) {
-        if inst.inst.to_string() == "Comment" { return }
         let mut has_source = false;
 
         if self.in_branch.get() {

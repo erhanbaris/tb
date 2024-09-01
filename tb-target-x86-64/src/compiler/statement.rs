@@ -42,8 +42,8 @@ impl X86StatementCompiler {
     fn compile_return(scope: &mut X86Store, expr: Option<Value>) -> Vec<X86Instruction> {
         match expr {
             Some(Value::Variable(variable)) => {
-                if let Some(_position) = scope.find_variable(&variable) {
-                    return vec![X86Instruction::Mov { source: scope.get_last_assigned_location(), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", variable)) }]
+                if let Some(position) = scope.find_variable(&variable) {
+                    return vec![X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Based(position as i32 * -4, Register::RBP)), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", variable)) }]
                 }
                 Vec::new()
             },

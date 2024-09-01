@@ -37,7 +37,7 @@ impl CompilerTrait for GCCCompiler {
         &self.path
     }
     
-    fn compile(&self, file_path: &str, target: &str, arguments: HashMap<String, String>) -> Result<(), TBError> {
+    fn compile(&self, file_path: &PathBuf, target: &PathBuf, arguments: HashMap<String, String>) -> Result<(), TBError> {
         let mut command = Command::new(&self.path);
         let mut args = command
             .arg(file_path)
@@ -51,7 +51,7 @@ impl CompilerTrait for GCCCompiler {
 
         if result.status.success() {
             log::info!("Compile operation successfully completed.");
-            log::info!("Executable location: {}", &target);
+            log::info!("Executable location: {}", &target.display());
             return Ok(());
         }
 

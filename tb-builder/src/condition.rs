@@ -29,8 +29,8 @@ impl ExpressionType {
     pub fn div(divided: Value, divider: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Div,
-            source: Some(Box::new(divided)),
-            target: Some(Box::new(divider))
+            source: Some(Box::new(divider)),
+            target: Some(Box::new(divided))
         }
     }
 
@@ -45,8 +45,8 @@ impl ExpressionType {
     pub fn modulo(divided: Value, divider: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::Modulo,
-            source: Some(Box::new(divided)),
-            target: Some(Box::new(divider))
+            source: Some(Box::new(divider)),
+            target: Some(Box::new(divided))
         }
     }
     

@@ -1,13 +1,15 @@
-use tb_core::{types::{Definition, Statement, Value}, tool::os_defs};
+use tb_core::{types::{Definition, Value}, tool::os_defs};
 
-use super::{expression::ExpressionType, BuilderGenerate};
+use crate::BlockType;
+
+use super::BuilderGenerate;
 
 #[repr(C)]
 #[derive(Debug, Clone, Default)]
 pub struct FunctionType {
     name: String,
     parameters: Vec<Value>,
-    body: Vec<Statement>
+    block: BlockType
 }
 
 impl FunctionType {
@@ -16,7 +18,7 @@ impl FunctionType {
         Self {
             name: defs.main_function_name().to_owned(),
             parameters: Default::default(),
-            body: Default::default()
+            block: Default::default()
         }
     }
 
@@ -36,23 +38,8 @@ impl FunctionType {
         self.parameters.push(Value::Number(value));
     }
 
-    pub fn add_assign(&mut self, name: &str, expression: ExpressionType) {
-        self.body.push(Statement::Assign {
-            name: name.to_owned(),
-            assigne: expression.convert()
-        })
-    }
-
-    pub fn add_return(&mut self) {
-        self.body.push(Statement::Return(None))
-    }
-
-    pub fn add_return_number(&mut self, value: i32) {
-        self.body.push(Statement::Return(Some(Value::Number(value))))
-    }
-
-    pub fn add_return_variable(&mut self, name: &str) {
-        self.body.push(Statement::Return(Some(Value::Variable(name.to_owned()))))
+    pub fn set_body(&mut self, block: BlockType) {
+        self.block = block;
     }
 }
 
@@ -60,7 +47,7 @@ impl BuilderGenerate for FunctionType {
     type Output = Definition;
 
     fn convert(self) -> Self::Output {
-        let Self { name, parameters, body } = self;
-        Definition::Function { name, parameters, body }
+        let Self { name, parameters, block } = self;
+        Definition::Function { name, parameters, block: block.convert() }
     }
 }

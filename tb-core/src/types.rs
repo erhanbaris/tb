@@ -26,6 +26,10 @@ pub enum Expression {
         divider: Value,
         divided: Value
     },
+    Mul {
+        target: Value,
+        source: Value
+    },
     Modulo {
         divider: Value,
         divided: Value
@@ -53,8 +57,13 @@ pub enum Definition {
     Function {
         name: String,
         parameters: Vec<Value>,
-        body: Vec<Statement>
-    }
+        block: Block
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct Block {
+    pub items: Vec<Statement>
 }
 
 pub struct ApplicationContext<I: InstructionTrait> {

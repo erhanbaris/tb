@@ -22,6 +22,11 @@ pub enum X86Instruction {
         target: X86Location,
         comment: Option<String>
     },
+    IMul {
+        source: X86Location,
+        target: X86Location,
+        comment: Option<String>
+    },
     IDiv {
         target: X86Location,
         comment: Option<String>
@@ -55,6 +60,7 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::Add { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Sub { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::IDiv { target, comment } => X86AbstractInstruction::target_with_comment(self, target, comment),
+            X86Instruction::IMul { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Not { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
             X86Instruction::Neg { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
             X86Instruction::Mov { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),

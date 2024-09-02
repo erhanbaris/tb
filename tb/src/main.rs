@@ -15,11 +15,10 @@ fn main() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(2)));
-    main_func_block.add_assign("test2", ExpressionType::sub(Value::Number(1), Value::Number(2)));
-    main_func_block.add_assign("actual", ExpressionType::add(Value::Variable("test1".to_owned()), Value::Variable("test2".to_owned())));
-
-    main_func_block.add_return_variable("test2");
+    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(3)));
+    main_func_block.add_assign("test2", ExpressionType::value(Value::Number(10)));
+    main_func_block.add_assign("actual", ExpressionType::shift_left(Value::Variable("test1".to_owned()), Value::Variable("test2".to_owned())));
+    main_func_block.add_return_variable("actual");
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();

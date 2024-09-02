@@ -55,9 +55,11 @@ impl CompilerTrait for GCCCompiler {
             return Ok(());
         }
 
-        log::error!("Compile operation failed.");
-        log::error!("{}", String::from_utf8(result.stderr)?);
+        let error_message =  String::from_utf8(result.stderr)?;
 
-        Err(TBError::CompileFailed)
+        log::error!("Compile operation failed.");
+        log::error!("{}", &error_message);
+
+        Err(TBError::CompileFailed(error_message))
     }
 }

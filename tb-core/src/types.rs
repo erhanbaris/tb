@@ -139,13 +139,12 @@ pub trait AssemblyGenerator: Default {
     fn generate(&self, definitions: Vec<Definition>) -> String;
 }
 
-
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Ord, Eq, PartialOrd, Debug, Copy, Clone, PartialEq)]
 pub enum RegisterSize {
-    _8Bit,
-    _16Bit,
-    _32Bit,
-    _64Bit
+    _8Bit = 0,
+    _16Bit = 1,
+    _32Bit = 2,
+    _64Bit = 3
 }
 
 pub trait RegisterTrait: Clone + PartialEq + Debug + ToString {

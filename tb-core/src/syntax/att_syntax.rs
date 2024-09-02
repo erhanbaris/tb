@@ -1,6 +1,6 @@
 use std::{cell::Cell, fmt::Debug, marker::PhantomData};
 
-use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait}, location::Location, types::{ApplicationContext, RegisterTrait}};
+use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait}, location::Location, types::{ApplicationContext, RegisterSize, RegisterTrait}};
 
 use super::{AsmStructure, SyntaxGeneratorTrait};
 
@@ -108,22 +108,30 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
     }
 
     fn get_suffix(&self, mode: &AddressingMode<I::REG>) -> &str {
-        match mode {
-            AddressingMode::Direct(_) => "",
-            AddressingMode::Indirect(_) => "q",
-            AddressingMode::Based(_, _) => "q",
+        let register = mode.get_register();
+        let register_size = register.get_register_size();
+        match register_size {
+            RegisterSize::_8Bit => "b",
+            RegisterSize::_16Bit => "w",
+            RegisterSize::_32Bit => "l",
+            RegisterSize::_64Bit => "q",
         }
     }
 
-    fn get_suffix_from_registers(&self, mode1: &AddressingMode<I::REG>, mode2: &AddressingMode<I::REG>) -> &str {
-        let mode1_register = mode1.get_register();
-        let mode2_register = mode2.get_register();
+    fn get_suffix_from_registers(&self, target: &AddressingMode<I::REG>, source: &AddressingMode<I::REG>) -> &str {
+        let target_register = target.get_register();
+        let source_register = source.get_register();
 
-        let mode1_register_type = mode1_register.get_register_size();
-        let mode2_register_type = mode2_register.get_register_size();
+        let target_register_size = target_register.get_register_size();
+        let source_register_size = source_register.get_register_size();
 
-        match mode1_register_type != mode2_register_type {
-            true => "l",
+        match target_register_size != source_register_size {
+            true => match std::cmp::min(source_register_size, target_register_size) {
+                RegisterSize::_8Bit => "b",
+                RegisterSize::_16Bit => "w",
+                RegisterSize::_32Bit => "l",
+                RegisterSize::_64Bit => "q",
+            },
             false => ""
         }
     }

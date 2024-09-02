@@ -15,6 +15,6 @@ pub enum TBError {
     #[error("Unsupported string format ({0})")]
     UnsupportedStringFormat(#[from] FromUtf8Error),
 
-    #[error("Compile failed")]
-    CompileFailed
+    #[error("Compile failed ({0})")]
+    CompileFailed(String)
 }

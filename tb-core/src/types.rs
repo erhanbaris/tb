@@ -140,8 +140,8 @@ pub trait AssemblyGenerator: Default {
 }
 
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum RegisterType {
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum RegisterSize {
     _8Bit,
     _16Bit,
     _32Bit,
@@ -149,5 +149,5 @@ pub enum RegisterType {
 }
 
 pub trait RegisterTrait: Clone + PartialEq + Debug + ToString {
-    fn get_register_type(&self) -> RegisterType;
+    fn get_register_size(&self) -> RegisterSize;
 }

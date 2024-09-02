@@ -53,6 +53,16 @@ where
         self.registers.clone()
     }
 
+    pub fn is_free(&mut self, register: R) -> bool {
+        for (item, status) in self.registers.iter() {
+            if item == &register {
+                return *status;
+            }
+        }
+        
+        true
+    }
+
     pub fn mark_register(&mut self, register: R) {
         for (index, (item, _)) in self.registers.iter().enumerate() {
             if item == &register {

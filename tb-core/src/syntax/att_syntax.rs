@@ -119,8 +119,8 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         let mode1_register = mode1.get_register();
         let mode2_register = mode2.get_register();
 
-        let mode1_register_type = mode1_register.get_register_type();
-        let mode2_register_type = mode2_register.get_register_type();
+        let mode1_register_type = mode1_register.get_register_size();
+        let mode2_register_type = mode2_register.get_register_size();
 
         match mode1_register_type != mode2_register_type {
             true => "l",

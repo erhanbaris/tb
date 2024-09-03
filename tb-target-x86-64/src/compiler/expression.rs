@@ -1,6 +1,6 @@
 use tb_core::{addressing_mode::AddressingMode, types::{Expression, RegisterSize, Value}};
 
-use crate::{instruction::{X86InstructionType, X86Instruction}, register::Register, X86AddressingMode, X86Location, X86Store};
+use crate::{instruction::{X86Instruction, X86InstructionType}, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
 use super::{error::X86Error, value::X86ValueCompiler};
 
@@ -32,23 +32,23 @@ struct SpecialConfiguration {
 pub struct X86ExpressionCompiler;
 
 impl X86ExpressionCompiler {
-    pub fn compile(expression: Expression, scope: &mut X86Store) -> Result<Vec<X86Instruction>, X86Error> {
+    pub fn compile(expression: Expression, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         match expression {
-            Expression::Add { target, source } => Self::compile_simple(scope, X86InstructionType::Add, target, source),
-            Expression::Sub { target, source } => Self::compile_simple(scope, X86InstructionType::Sub, target, source),
-            Expression::Mul { target, source } => Self::compile_simple(scope, X86InstructionType::IMul, target, source),
-            Expression::Modulo { divider, divided } => Self::compile_div(scope, divider, divided, Register::EDX),
-            Expression::Div { divider, divided } => Self::compile_div(scope, divider, divided, Register::EAX),
-            Expression::ShiftLeft { target, source } => Self::compile_simple(scope, X86InstructionType::Shl, target, source),
-            Expression::ShiftRight { target, source } => Self::compile_simple(scope, X86InstructionType::Shr, target, source),
-            Expression::BitwiseNot { source } => Self::compile_single(scope, X86InstructionType::Not, source),
-            Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, X86InstructionType::And, target, source),
-            Expression::BitwiseOr { source, target } => Self::compile_simple(scope, X86InstructionType::Or, target, source),
-            Expression::BitwiseXor { source, target } => Self::compile_simple(scope, X86InstructionType::Xor, target, source),
-            Expression::BitwiseNeg { source } => Self::compile_single(scope, X86InstructionType::Neg, source),
-            Expression::Dec { source } => Self::compile_single(scope, X86InstructionType::Dec, source),
-            Expression::Inc { source } => Self::compile_single(scope, X86InstructionType::Inc, source),
-            Expression::Value(val) => Self::compile_value(scope, val),
+            Expression::Add { target, source } => Self::compile_simple(scope, X86InstructionType::Add, target, source, context),
+            Expression::Sub { target, source } => Self::compile_simple(scope, X86InstructionType::Sub, target, source, context),
+            Expression::Mul { target, source } => Self::compile_simple(scope, X86InstructionType::IMul, target, source, context),
+            Expression::Modulo { divider, divided } => Self::compile_div(scope, divider, divided, Register::EDX, context),
+            Expression::Div { divider, divided } => Self::compile_div(scope, divider, divided, Register::EAX, context),
+            Expression::ShiftLeft { target, source } => Self::compile_simple(scope, X86InstructionType::Shl, target, source, context),
+            Expression::ShiftRight { target, source } => Self::compile_simple(scope, X86InstructionType::Shr, target, source, context),
+            Expression::BitwiseNot { source } => Self::compile_single(scope, X86InstructionType::Not, source, context),
+            Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, X86InstructionType::And, target, source, context),
+            Expression::BitwiseOr { source, target } => Self::compile_simple(scope, X86InstructionType::Or, target, source, context),
+            Expression::BitwiseXor { source, target } => Self::compile_simple(scope, X86InstructionType::Xor, target, source, context),
+            Expression::BitwiseNeg { source } => Self::compile_single(scope, X86InstructionType::Neg, source, context),
+            Expression::Dec { source } => Self::compile_single(scope, X86InstructionType::Dec, source, context),
+            Expression::Inc { source } => Self::compile_single(scope, X86InstructionType::Inc, source, context),
+            Expression::Value(val) => Self::compile_value(scope, val, context),
         }
     }
 
@@ -91,28 +91,26 @@ impl X86ExpressionCompiler {
         }
     }
 
-    fn compile_simple(scope: &mut X86Store, inst_type: X86InstructionType, target: Value, source: Value) -> Result<Vec<X86Instruction>, X86Error> {
-        let mut instructions = Vec::new();
-
+    fn compile_simple(scope: &mut X86Store, inst_type: X86InstructionType, target: Value, source: Value, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
 
-        instructions.push(X86Instruction::Comment("Generate source value".to_owned()));
+        context.instructions.add_comment("Generate source value".to_owned());
         
         // Some of the operatorlar need direct register.
         let source_register = Self::get_target_register(scope, inst_type, |item| item.fixed_source_type.clone());
         
-        let mut source = X86ValueCompiler::compile(source, &mut instructions, scope, source_register)?;
+        let mut source = X86ValueCompiler::compile(source, context, scope, source_register)?;
 
         // Some of the operatorlar need direct register.
         let target_register = Self::get_target_register(scope, inst_type, |item| item.fixed_target_type.clone());
         
-        instructions.push(X86Instruction::Comment("Generate target value".to_owned()));
-        let target = X86ValueCompiler::compile(target, &mut instructions, scope, target_register)?;
+        context.instructions.add_comment("Generate target value".to_owned());
+        let target = X86ValueCompiler::compile(target, context, scope, target_register)?;
 
         if let Some(mode) = source.get_addressing_mode() {
             if !mode.is_direct_register() {
                 let new_reg = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
-                instructions.push(X86Instruction::Mov { source, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
+                context.instructions.add_instruction(X86Instruction::Mov { source, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
                 source = X86Location::Register(X86AddressingMode::Direct(new_reg));
             }
         }
@@ -129,7 +127,7 @@ impl X86ExpressionCompiler {
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 
-        instructions.push(instruction);
+        context.instructions.add_instruction(instruction);
         scope.register_restore(registers);
         scope.set_last_assigned_location(target);
 
@@ -137,30 +135,28 @@ impl X86ExpressionCompiler {
             scope.mark_register(register);
         }
 
-        Ok(instructions)
+        Ok(())
     }
 
-    fn compile_div(scope: &mut X86Store, divider: Value, divided: Value, target_register: Register) -> Result<Vec<X86Instruction>, X86Error> {
-        let mut instructions = Vec::new();
-
+    fn compile_div(scope: &mut X86Store, divider: Value, divided: Value, target_register: Register, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
 
-        instructions.push(X86Instruction::Comment("Generate divider value".to_owned()));
-        let mut divider = X86ValueCompiler::compile(divider, &mut instructions, scope, Some(X86Location::Register(X86AddressingMode::Direct(Register::ESI))))?;
+        context.instructions.add_comment("Generate divider value".to_owned());
+        let mut divider = X86ValueCompiler::compile(divider, context, scope, Some(X86Location::Register(X86AddressingMode::Direct(Register::ESI))))?;
 
-        instructions.push(X86Instruction::Comment("Generate divided value".to_owned()));
-        X86ValueCompiler::compile(divided, &mut instructions, scope, Some(X86Location::Register(X86AddressingMode::Direct(Register::EAX))))?;
+        context.instructions.add_comment("Generate divided value".to_owned());
+        X86ValueCompiler::compile(divided, context, scope, Some(X86Location::Register(X86AddressingMode::Direct(Register::EAX))))?;
 
         if let Some(mode) = divider.get_addressing_mode() {
             if !mode.is_direct_register() {
                 let new_reg = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
-                instructions.push(X86Instruction::Mov { source: divider, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
+                context.instructions.add_instruction(X86Instruction::Mov { source: divider, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
                 divider = X86Location::Register(X86AddressingMode::Direct(new_reg));
             }
         }
 
-        instructions.push(X86Instruction::Cdq);
-        instructions.push(X86Instruction::IDiv { target: divider, comment: None });
+        context.instructions.add_instruction(X86Instruction::Cdq);
+        context.instructions.add_instruction(X86Instruction::IDiv { target: divider, comment: None });
         scope.register_restore(registers);
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(target_register)));
 
@@ -168,21 +164,19 @@ impl X86ExpressionCompiler {
             scope.mark_register(register);
         }
 
-        Ok(instructions)
+        Ok(())
     }
 
-    fn compile_single(scope: &mut X86Store, inst: X86InstructionType, source: Value) -> Result<Vec<X86Instruction>, X86Error> {
-        let mut instructions = Vec::new();
-
+    fn compile_single(scope: &mut X86Store, inst: X86InstructionType, source: Value, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
 
-        instructions.push(X86Instruction::Comment("Generate source value".to_owned()));
-        let mut source = X86ValueCompiler::compile(source, &mut instructions, scope, None)?;
+        context.instructions.add_comment("Generate source value".to_owned());
+        let mut source = X86ValueCompiler::compile(source, context, scope, None)?;
 
         if let Some(mode) = source.get_addressing_mode() {
             if !mode.is_direct_register() {
                 let new_reg = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
-                instructions.push(X86Instruction::Mov { source, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
+                context.instructions.add_instruction(X86Instruction::Mov { source, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
                 source = X86Location::Register(X86AddressingMode::Direct(new_reg));
             }
         }
@@ -195,7 +189,7 @@ impl X86ExpressionCompiler {
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 
-        instructions.push(instruction);
+        context.instructions.add_instruction(instruction);
         scope.register_restore(registers);
         scope.set_last_assigned_location(source);
 
@@ -203,13 +197,12 @@ impl X86ExpressionCompiler {
             scope.mark_register(register);
         }
 
-        Ok(instructions)
+        Ok(())
     }
 
-    pub fn compile_value(scope: &mut X86Store, value: Value) -> Result<Vec<X86Instruction>, X86Error> {
-        let mut instructions = Vec::new();
-        let value = X86ValueCompiler::compile(value, &mut instructions, scope, None)?;
+    pub fn compile_value(scope: &mut X86Store, value: Value, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+        let value = X86ValueCompiler::compile(value, context, scope, None)?;
         scope.set_last_assigned_location(value);
-        Ok(instructions)
+        Ok(())
     }
 }

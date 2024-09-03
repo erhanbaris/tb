@@ -5,7 +5,6 @@ use tb_core::{addressing_mode::AddressingMode, instruction::AbstractInstruction,
 
 pub mod register;
 pub mod compiler;
-pub mod backend;
 pub mod instruction;
 pub mod generator;
 pub mod storage;

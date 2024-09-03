@@ -140,7 +140,6 @@ impl<I> InstructionCollection<I> where I: InstructionTrait {
 
 pub struct ApplicationContext<I: InstructionTrait, S: StorageTrait> {
     pub os_specific_defs: Box<dyn OsSpecificDefs>,
-    pub abstract_asms: Vec<AsmStructure<I>>,
     pub instructions: InstructionCollection<I>,
     pub storage: S
 }
@@ -149,7 +148,6 @@ impl<I, S> Default for ApplicationContext<I, S> where I: InstructionTrait, S: St
     fn default() -> Self {
         Self {
             os_specific_defs: os_defs(),
-            abstract_asms: Default::default(),
             storage: Default::default(),
             instructions: Default::default()
         }

@@ -85,7 +85,6 @@ pub enum X86Instruction {
     Cdq,
     Push(X86Location),
     Pop(X86Location),
-    Comment(String),
     Ret
 }
 
@@ -118,7 +117,6 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::Cmp{ left, right, comment } => X86AbstractInstruction::target_source_with_comment(self, left, right, comment),
             X86Instruction::Push(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Pop(target) => X86AbstractInstruction::target(self, target),
-            X86Instruction::Comment(comment) => X86AbstractInstruction::simple_with_comment(self, Some(comment)),
             X86Instruction::Ret => X86AbstractInstruction::simple(self),
             X86Instruction::Cdq => X86AbstractInstruction::simple(self)
         }

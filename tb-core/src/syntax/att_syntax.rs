@@ -21,7 +21,7 @@ impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTr
         let mut buffer = String::new();
         buffer.push_str(&format!(".globl {}\r\n", context.os_specific_defs.main_function_name()));
 
-        for item in context.abstract_asms.clone().into_iter() {
+        for item in context.instructions.items.clone().into_iter() {
             self.process_item(item, context, &mut buffer);
         }
 

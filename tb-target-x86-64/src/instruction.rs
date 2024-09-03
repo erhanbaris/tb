@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use strum_macros::EnumDiscriminants;
 use strum_macros::Display;
 use tb_core::instruction::InstructionTrait;
-use tb_core::instruction::InstructionType;
 
 use crate::register::Register;
 use crate::X86AbstractInstruction;
@@ -128,21 +127,5 @@ impl InstructionTrait for X86Instruction {
     fn name(&self) -> String {
         let t: X86InstructionType = self.into();
         t.to_string()
-    }
-    
-    fn instruction_type(&self) -> InstructionType {
-        let x86_inst_type: X86InstructionType = self.clone().into();
-        match x86_inst_type {
-            X86InstructionType::Add
-                | X86InstructionType::Sub
-                | X86InstructionType::IMul
-                | X86InstructionType::IDiv
-                | X86InstructionType::Mov
-                | X86InstructionType::And
-                | X86InstructionType::Or
-                | X86InstructionType::Xor
-            => InstructionType::DataMove,
-            _ => InstructionType::Operation
-        }
     }
 }

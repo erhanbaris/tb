@@ -1,6 +1,6 @@
 use std::{cell::Cell, fmt::Debug, marker::PhantomData};
 
-use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait, InstructionType, StorageTrait}, location::Location, types::{ApplicationContext, RegisterSize, RegisterTrait}};
+use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait, StorageTrait}, location::Location, types::{ApplicationContext, RegisterSize, RegisterTrait}};
 
 use super::{AsmStructure, SyntaxGeneratorTrait};
 
@@ -63,9 +63,9 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         buffer.push_str(&inst.inst.to_string().to_lowercase());
 
         match (&inst.target.as_ref().and_then(|item| item.get_addressing_mode()), &inst.source1.as_ref().and_then(|item| item.get_addressing_mode())) {
-            (Some(target), None) => buffer.push_str(self.get_suffix(&inst.inst, target)),
-            (None, Some(source)) => buffer.push_str(self.get_suffix(&inst.inst, source)),
-            (Some(target), Some(source)) => buffer.push_str(self.get_suffix_from_registers(&inst.inst, target, source)),
+            (Some(target), None) => buffer.push_str(self.get_suffix(target)),
+            (None, Some(source)) => buffer.push_str(self.get_suffix(source)),
+            (Some(target), Some(source)) => buffer.push_str(self.get_suffix_from_registers(target, source)),
             (None, None) => ()
         };
         
@@ -107,11 +107,7 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         buffer.push_str("\r\n");
     }
 
-    fn get_suffix(&self, inst: &I, mode: &AddressingMode<I::REG>) -> &str {
-        if let InstructionType::Operation = inst.instruction_type() {
-            return ""
-        }
-
+    fn get_suffix(&self,  mode: &AddressingMode<I::REG>) -> &str {
         let register = mode.get_register();
         let register_size = register.get_register_size();
         match register_size {
@@ -122,13 +118,13 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         }
     }
 
-    fn get_suffix_from_registers(&self, inst: &I, target: &AddressingMode<I::REG>, source: &AddressingMode<I::REG>) -> &str {
-        if let InstructionType::Operation = inst.instruction_type() {
-            return ""
-        }
-
+    fn get_suffix_from_registers(&self, target: &AddressingMode<I::REG>, source: &AddressingMode<I::REG>) -> &str {
         let target_register = target.get_register();
         let source_register = source.get_register();
+
+        if target.is_direct_register() && source.is_direct_register() {
+            return ""
+        }
 
         let target_register_size = target_register.get_register_size();
         let source_register_size = source_register.get_register_size();

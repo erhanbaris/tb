@@ -47,19 +47,12 @@ impl<I> AbstractInstruction<I> where I: InstructionTrait {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum InstructionType {
-    DataMove,
-    Operation
-}
-
 pub trait InstructionTrait: Debug + ToString + Clone {
     type IT: Debug + ToString + Clone;
     type REG: RegisterTrait;
     
     fn convert(self) -> AbstractInstruction<Self>;
     fn name(&self) -> String;
-    fn instruction_type(&self) -> InstructionType;
 }
 
 pub trait StorageTrait: Debug + Default {

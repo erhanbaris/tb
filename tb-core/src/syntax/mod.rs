@@ -2,12 +2,12 @@ use std::fmt::Debug;
 
 use att_syntax::ATTSyntaxGenerator;
 
-use crate::{error::TBError, instruction::InstructionTrait, types::ApplicationContext};
+use crate::{error::TBError, instruction::{InstructionTrait, StorageTrait}, types::ApplicationContext};
 
 mod att_syntax;
 
 pub trait SyntaxGeneratorTrait<I: InstructionTrait> where Self: Sized + Default {
-    fn generate(&self, context: &mut ApplicationContext<I>) -> String;
+    fn generate<S: StorageTrait>(&self, context: &mut ApplicationContext<I, S>) -> String;
 }
 
 pub struct TBSyntaxGenerator;

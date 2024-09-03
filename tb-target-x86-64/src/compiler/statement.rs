@@ -1,17 +1,18 @@
-use tb_core::types::{Expression, Number, Statement, Value};
+use tb_core::types::{Block, Condition, Expression, Number, Statement, Value};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
-use super::{error::X86Error, expression::X86ExpressionCompiler};
+use super::{block::X86BlockCompiler, condition::X86ConditionCompiler, error::X86Error, expression::X86ExpressionCompiler};
 
 pub struct X86StatementCompiler;
 
 
 impl X86StatementCompiler {
-    pub fn compile(statement: Statement, scope: &mut X86Store, _context: &mut X86ApplicationContext) -> Result<Vec<X86Instruction>, X86Error> {
+    pub fn compile(statement: Statement, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<Vec<X86Instruction>, X86Error> {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne),
             Statement::Return(expr) => Self::compile_return(scope, expr),
+            Statement::If { condition, true_block, false_block } => Self::compile_if(condition, true_block, false_block, context),
         }
     }
     
@@ -36,6 +37,25 @@ impl X86StatementCompiler {
         instructions.push(X86Instruction::Mov { source: scope.get_last_assigned_location(), target: X86Location::Register(X86AddressingMode::Based(position as i32 * -4, Register::RBP)), comment: Some(format!("assign {}", name)) });
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Based(position as i32 * -4, Register::RBP)));
         scope.register_restore(registers);
+        Ok(instructions)
+    }
+
+    fn compile_if(condition: Condition, true_block: Block, false_block: Option<Block>, context: &mut X86ApplicationContext) -> Result<Vec<X86Instruction>, X86Error> {
+        let mut scope = X86Store::default();
+        let mut instructions = Vec::new();
+
+        let condition_instructions = X86ConditionCompiler::compile(condition, &mut scope)?;
+        instructions.extend(condition_instructions);
+
+        let true_instructions = X86BlockCompiler::compile(true_block, &mut scope, context)?;
+        instructions.extend(true_instructions);
+
+        if let Some(false_block) = false_block {
+            //let else_branch = context.storage.get_branch();
+            let false_instructions = X86BlockCompiler::compile(false_block, &mut scope, context)?;
+            instructions.extend(false_instructions);
+        };
+
         Ok(instructions)
     }
 

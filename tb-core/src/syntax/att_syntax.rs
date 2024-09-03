@@ -1,6 +1,6 @@
 use std::{cell::Cell, fmt::Debug, marker::PhantomData};
 
-use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait}, location::Location, types::{ApplicationContext, RegisterSize, RegisterTrait}};
+use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait, InstructionType, StorageTrait}, location::Location, types::{ApplicationContext, RegisterSize, RegisterTrait}};
 
 use super::{AsmStructure, SyntaxGeneratorTrait};
 
@@ -17,7 +17,7 @@ impl<I> Default for ATTSyntaxGenerator<I> where I: InstructionTrait {
 }
 
 impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTrait {
-    fn generate(&self, context: &mut ApplicationContext<I>) -> String {
+    fn generate<S: StorageTrait>(&self, context: &mut ApplicationContext<I, S>) -> String {
         let mut buffer = String::new();
         buffer.push_str(&format!(".globl {}\r\n", context.os_specific_defs.main_function_name()));
 
@@ -31,7 +31,7 @@ impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTr
 }
 
 impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
-    fn process_item(&self, item: AsmStructure<I>, context: &mut ApplicationContext<I>, buffer: &mut String) {
+    fn process_item<S: StorageTrait>(&self, item: AsmStructure<I>, context: &mut ApplicationContext<I, S>, buffer: &mut String) {
         match item {
             AsmStructure::Branch(name) => self.generate_branch(name, context, buffer),
             AsmStructure::BranchFinished => self.in_branch.set(false),
@@ -53,7 +53,7 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         }
     }
 
-    fn generate_instruction(&self, inst: AbstractInstruction<I>, _: &mut ApplicationContext<I>, buffer: &mut String) {
+    fn generate_instruction<S: StorageTrait>(&self, inst: AbstractInstruction<I>, _: &mut ApplicationContext<I, S>, buffer: &mut String) {
         let mut has_source = false;
 
         if self.in_branch.get() {
@@ -63,9 +63,9 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         buffer.push_str(&inst.inst.to_string().to_lowercase());
 
         match (&inst.target.as_ref().and_then(|item| item.get_addressing_mode()), &inst.source1.as_ref().and_then(|item| item.get_addressing_mode())) {
-            (Some(target), None) => buffer.push_str(self.get_suffix(target)),
-            (None, Some(source)) => buffer.push_str(self.get_suffix(source)),
-            (Some(target), Some(source)) => buffer.push_str(self.get_suffix_from_registers(target, source)),
+            (Some(target), None) => buffer.push_str(self.get_suffix(&inst.inst, target)),
+            (None, Some(source)) => buffer.push_str(self.get_suffix(&inst.inst, source)),
+            (Some(target), Some(source)) => buffer.push_str(self.get_suffix_from_registers(&inst.inst, target, source)),
             (None, None) => ()
         };
         
@@ -90,14 +90,14 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         buffer.push_str("\r\n");
     }
 
-    fn generate_branch(&self, name: String, _: &mut ApplicationContext<I>, buffer: &mut String) {
+    fn generate_branch<S: StorageTrait>(&self, name: String, _: &mut ApplicationContext<I, S>, buffer: &mut String) {
         self.in_branch.set(true);
         buffer.push_str(&name);
         buffer.push(':');
         buffer.push_str("\r\n");
     }
 
-    fn generate_comment(&self, name: String, _: &mut ApplicationContext<I>, buffer: &mut String) {
+    fn generate_comment<S: StorageTrait>(&self, name: String, _: &mut ApplicationContext<I, S>, buffer: &mut String) {
         if self.in_branch.get() {
             buffer.push_str("    ");
         }
@@ -107,7 +107,11 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         buffer.push_str("\r\n");
     }
 
-    fn get_suffix(&self, mode: &AddressingMode<I::REG>) -> &str {
+    fn get_suffix(&self, inst: &I, mode: &AddressingMode<I::REG>) -> &str {
+        if let InstructionType::Operation = inst.instruction_type() {
+            return ""
+        }
+
         let register = mode.get_register();
         let register_size = register.get_register_size();
         match register_size {
@@ -118,7 +122,11 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         }
     }
 
-    fn get_suffix_from_registers(&self, target: &AddressingMode<I::REG>, source: &AddressingMode<I::REG>) -> &str {
+    fn get_suffix_from_registers(&self, inst: &I, target: &AddressingMode<I::REG>, source: &AddressingMode<I::REG>) -> &str {
+        if let InstructionType::Operation = inst.instruction_type() {
+            return ""
+        }
+
         let target_register = target.get_register();
         let source_register = source.get_register();
 

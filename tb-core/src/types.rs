@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display};
 
 use strum_macros::EnumDiscriminants;
 
-use crate::{instruction::InstructionTrait, syntax::AsmStructure, tool::{os_defs, OsSpecificDefs}};
+use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::AsmStructure, tool::{os_defs, OsSpecificDefs}};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -60,7 +60,22 @@ pub enum Expression {
     BitwiseNeg {
         source: Value
     },
+    Inc {
+        source: Value
+    },
+    Dec {
+        source: Value
+    },
     Value(Value)
+}
+
+#[derive(Debug, Clone, EnumDiscriminants)]
+#[strum_discriminants(name(ConditionDiscriminant))]
+pub enum Condition {
+    Eq {
+        left: Value,
+        right: Value
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +83,11 @@ pub enum Statement {
     Assign {
         name: String,
         assigne: Expression
+    },
+    If {
+        condition: Condition,
+        true_block: Block,
+        false_block: Option<Block>
     },
     Return(Option<Value>)
 }
@@ -86,16 +106,52 @@ pub struct Block {
     pub items: Vec<Statement>
 }
 
-pub struct ApplicationContext<I: InstructionTrait> {
-    pub os_specific_defs: Box<dyn OsSpecificDefs>,
-    pub abstract_asms: Vec<AsmStructure<I>>
+
+#[derive(Debug)]
+pub struct InstructionCollection<I: InstructionTrait> {
+    pub items: Vec<AsmStructure<I>>,
 }
 
-impl<I> Default for ApplicationContext<I> where I: InstructionTrait {
+impl<I> Default for InstructionCollection<I> where I: InstructionTrait {
+    fn default() -> Self {
+        Self {
+            items: Default::default()
+        }
+    }
+}
+
+impl<I> InstructionCollection<I> where I: InstructionTrait {
+    pub fn add_instruction(&mut self, instruction: I) {
+        self.items.push(AsmStructure::Instruction(Box::new(instruction)))
+    }
+
+    pub fn add_branch(&mut self, name: String) {
+        self.items.push(AsmStructure::Branch(name))
+    }
+
+    pub fn add_close_branch(&mut self) {
+        self.items.push(AsmStructure::BranchFinished)
+    }
+    
+    pub fn add_comment(&mut self, comment: String) {
+        self.items.push(AsmStructure::Comment(comment))
+    }
+}
+
+pub struct ApplicationContext<I: InstructionTrait, S: StorageTrait> {
+    pub os_specific_defs: Box<dyn OsSpecificDefs>,
+    pub abstract_asms: Vec<AsmStructure<I>>,
+    pub instructions: InstructionCollection<I>,
+    pub storage: S
+}
+
+impl<I, S> Default for ApplicationContext<I, S> where I: InstructionTrait, S: StorageTrait {
     fn default() -> Self {
         Self {
             os_specific_defs: os_defs(),
-            abstract_asms: Default::default()
+            abstract_asms: Default::default(),
+            storage: Default::default(),
+            instructions: Default::default()
         }
     }
 }

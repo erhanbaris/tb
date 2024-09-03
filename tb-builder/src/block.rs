@@ -1,5 +1,7 @@
 use tb_core::types::{Block, Statement, Value};
 
+use crate::if_block::IfBlockType;
+
 use super::{expression::ExpressionType, BuilderGenerate};
 
 #[repr(C)]
@@ -13,6 +15,14 @@ impl BlockType {
         self.items.push(Statement::Assign {
             name: name.to_owned(),
             assigne: expression.convert()
+        })
+    }
+
+    pub fn add_if(&mut self, if_block: IfBlockType) {
+        self.items.push(Statement::If {
+            condition: if_block.condition.convert(),
+            true_block: if_block.true_block.convert(),
+            false_block: if_block.false_block.map(|item| item.convert())
         })
     }
 

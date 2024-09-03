@@ -19,6 +19,7 @@ impl Backend {
     }
 
     fn generate_function(&self, context: &mut X86ApplicationContext, name: &String, instructions: &[X86Instruction]) {
+        context.instructions.add_branch(name.to_owned());
         context.abstract_asms.push(AsmStructure::Branch(name.to_owned()));
 
         // Function begin
@@ -36,14 +37,18 @@ impl Backend {
         self.generate_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(Register::RBP)), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None }, context);
         self.generate_instruction(X86Instruction::Pop(X86Location::Register(X86AddressingMode::Direct(Register::RBP))), context);
         self.generate_instruction(X86Instruction::Ret, context);
+        context.instructions.add_close_branch();
     }
 
     fn generate_instruction<T: Borrow<X86Instruction>>(&self, inst: T, context: &mut X86ApplicationContext) {
+        context.instructions.add_instruction(inst.borrow().clone());
+
         let inst = match inst.borrow() {
             X86Instruction::Comment(comment) => AsmStructure::Comment(comment.to_owned()),
             inst => AsmStructure::Instruction(Box::new(inst.clone()))
         };
-        context.abstract_asms.push(inst);
+        context.abstract_asms.push(inst.clone());
+
     }
 
 }

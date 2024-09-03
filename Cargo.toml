@@ -1,2 +1,3 @@
 [workspace]
 members = [ "tb", "tb-builder","tb-core", "tb-ffi", "tb-target-x86-64"]
+resolver = "2"

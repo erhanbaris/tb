@@ -1,18 +1,18 @@
 use tb_core::{addressing_mode::AddressingMode, types::{Expression, RegisterSize, Value}};
 
-use crate::{instruction::{InstructionType, X86Instruction}, register::{Register, OPCODE_TYPES}, X86AddressingMode, X86Location, X86Store};
+use crate::{instruction::{X86InstructionType, X86Instruction}, register::Register, X86AddressingMode, X86Location, X86Store};
 
 use super::{error::X86Error, value::X86ValueCompiler};
 
-const SPECIAL_INSTRUCTION_CHECK: [InstructionType; 3] = [
-    InstructionType::IMul,
-    InstructionType::Shl,
-    InstructionType::Shr
+const SPECIAL_INSTRUCTION_CHECK: [X86InstructionType; 3] = [
+    X86InstructionType::IMul,
+    X86InstructionType::Shl,
+    X86InstructionType::Shr
 ];
 const SPECIAL_INSTRUCTION: [SpecialConfiguration; 3] = [
-    SpecialConfiguration { inst: InstructionType::IMul, fixed_source_type: None, fixed_target_type: Some(FixedType::AnyRegister) },
-    SpecialConfiguration { inst: InstructionType::Shl, fixed_source_type: Some(FixedType::Register(Register::ECX, Some(RegisterSize::_8Bit))), fixed_target_type: None },
-    SpecialConfiguration { inst: InstructionType::Shr, fixed_source_type: Some(FixedType::Register(Register::ECX, Some(RegisterSize::_8Bit))), fixed_target_type: None },
+    SpecialConfiguration { inst: X86InstructionType::IMul, fixed_source_type: None, fixed_target_type: Some(FixedType::AnyRegister) },
+    SpecialConfiguration { inst: X86InstructionType::Shl, fixed_source_type: Some(FixedType::Register(Register::ECX, Some(RegisterSize::_8Bit))), fixed_target_type: None },
+    SpecialConfiguration { inst: X86InstructionType::Shr, fixed_source_type: Some(FixedType::Register(Register::ECX, Some(RegisterSize::_8Bit))), fixed_target_type: None },
 ];
 
 #[derive(Debug, Clone)]
@@ -23,7 +23,8 @@ enum FixedType {
 
 #[derive(Debug)]
 struct SpecialConfiguration {
-    pub inst: InstructionType,
+    #[allow(dead_code)]
+    pub inst: X86InstructionType,
     pub fixed_target_type: Option<FixedType>,
     pub fixed_source_type: Option<FixedType>,
 }
@@ -33,23 +34,25 @@ pub struct X86ExpressionCompiler;
 impl X86ExpressionCompiler {
     pub fn compile(expression: Expression, scope: &mut X86Store) -> Result<Vec<X86Instruction>, X86Error> {
         match expression {
-            Expression::Add { target, source } => Self::compile_simple(scope, InstructionType::Add, target, source),
-            Expression::Sub { target, source } => Self::compile_simple(scope, InstructionType::Sub, target, source),
-            Expression::Mul { target, source } => Self::compile_simple(scope, InstructionType::IMul, target, source),
+            Expression::Add { target, source } => Self::compile_simple(scope, X86InstructionType::Add, target, source),
+            Expression::Sub { target, source } => Self::compile_simple(scope, X86InstructionType::Sub, target, source),
+            Expression::Mul { target, source } => Self::compile_simple(scope, X86InstructionType::IMul, target, source),
             Expression::Modulo { divider, divided } => Self::compile_div(scope, divider, divided, Register::EDX),
             Expression::Div { divider, divided } => Self::compile_div(scope, divider, divided, Register::EAX),
-            Expression::ShiftLeft { target, source } => Self::compile_simple(scope, InstructionType::Shl, target, source),
-            Expression::ShiftRight { target, source } => Self::compile_simple(scope, InstructionType::Shr, target, source),
-            Expression::BitwiseNot { source } => Self::compile_single(scope, InstructionType::Not, source),
-            Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, InstructionType::And, target, source),
-            Expression::BitwiseOr { source, target } => Self::compile_simple(scope, InstructionType::Or, target, source),
-            Expression::BitwiseXor { source, target } => Self::compile_simple(scope, InstructionType::Xor, target, source),
-            Expression::BitwiseNeg { source } => Self::compile_single(scope, InstructionType::Neg, source),
+            Expression::ShiftLeft { target, source } => Self::compile_simple(scope, X86InstructionType::Shl, target, source),
+            Expression::ShiftRight { target, source } => Self::compile_simple(scope, X86InstructionType::Shr, target, source),
+            Expression::BitwiseNot { source } => Self::compile_single(scope, X86InstructionType::Not, source),
+            Expression::BitwiseAnd { source, target } => Self::compile_simple(scope, X86InstructionType::And, target, source),
+            Expression::BitwiseOr { source, target } => Self::compile_simple(scope, X86InstructionType::Or, target, source),
+            Expression::BitwiseXor { source, target } => Self::compile_simple(scope, X86InstructionType::Xor, target, source),
+            Expression::BitwiseNeg { source } => Self::compile_single(scope, X86InstructionType::Neg, source),
+            Expression::Dec { source } => Self::compile_single(scope, X86InstructionType::Dec, source),
+            Expression::Inc { source } => Self::compile_single(scope, X86InstructionType::Inc, source),
             Expression::Value(val) => Self::compile_value(scope, val),
         }
     }
 
-    fn get_target_register(scope: &mut X86Store, inst_type: InstructionType, get_fixed_type: fn(special_info: &SpecialConfiguration) -> Option<FixedType>) -> Option<X86Location> {
+    fn get_target_register(scope: &mut X86Store, inst_type: X86InstructionType, get_fixed_type: fn(special_info: &SpecialConfiguration) -> Option<FixedType>) -> Option<X86Location> {
         match SPECIAL_INSTRUCTION_CHECK.iter().position(|item| *item == inst_type) {
             Some(position) => {
                 let special_info = &SPECIAL_INSTRUCTION[position];
@@ -88,7 +91,7 @@ impl X86ExpressionCompiler {
         }
     }
 
-    fn compile_simple(scope: &mut X86Store, inst_type: InstructionType, target: Value, source: Value) -> Result<Vec<X86Instruction>, X86Error> {
+    fn compile_simple(scope: &mut X86Store, inst_type: X86InstructionType, target: Value, source: Value) -> Result<Vec<X86Instruction>, X86Error> {
         let mut instructions = Vec::new();
 
         let registers = scope.register_backup();
@@ -115,14 +118,14 @@ impl X86ExpressionCompiler {
         }
 
         let instruction = match inst_type {
-            InstructionType::Add => X86Instruction::Add { source, target, comment: None },
-            InstructionType::Sub => X86Instruction::Sub { source, target, comment: None },
-            InstructionType::IMul => X86Instruction::IMul { source, target, comment: None },
-            InstructionType::And => X86Instruction::And { source, target, comment: None },
-            InstructionType::Or => X86Instruction::Or { source, target, comment: None },
-            InstructionType::Xor => X86Instruction::Xor { source, target, comment: None },
-            InstructionType::Shl => X86Instruction::Shl { source, target, comment: None },
-            InstructionType::Shr => X86Instruction::Shr { source, target, comment: None },
+            X86InstructionType::Add => X86Instruction::Add { source, target, comment: None },
+            X86InstructionType::Sub => X86Instruction::Sub { source, target, comment: None },
+            X86InstructionType::IMul => X86Instruction::IMul { source, target, comment: None },
+            X86InstructionType::And => X86Instruction::And { source, target, comment: None },
+            X86InstructionType::Or => X86Instruction::Or { source, target, comment: None },
+            X86InstructionType::Xor => X86Instruction::Xor { source, target, comment: None },
+            X86InstructionType::Shl => X86Instruction::Shl { source, target, comment: None },
+            X86InstructionType::Shr => X86Instruction::Shr { source, target, comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 
@@ -168,7 +171,7 @@ impl X86ExpressionCompiler {
         Ok(instructions)
     }
 
-    fn compile_single(scope: &mut X86Store, inst: InstructionType, source: Value) -> Result<Vec<X86Instruction>, X86Error> {
+    fn compile_single(scope: &mut X86Store, inst: X86InstructionType, source: Value) -> Result<Vec<X86Instruction>, X86Error> {
         let mut instructions = Vec::new();
 
         let registers = scope.register_backup();
@@ -185,8 +188,10 @@ impl X86ExpressionCompiler {
         }
 
         let instruction = match inst {
-            InstructionType::Neg => X86Instruction::Neg { source, comment: None },
-            InstructionType::Not => X86Instruction::Not { source, comment: None },
+            X86InstructionType::Neg => X86Instruction::Neg { source, comment: None },
+            X86InstructionType::Not => X86Instruction::Not { source, comment: None },
+            X86InstructionType::Inc => X86Instruction::Inc { source, comment: None },
+            X86InstructionType::Dec => X86Instruction::Dec { source, comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 

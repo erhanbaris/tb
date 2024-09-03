@@ -20,3 +20,12 @@ impl AssemblyGenerator for X86AssemblyGenerator{
         syntax_generator.generate(&mut context)
     }
 }
+
+/*
+- Finalize automated CM migration procedure
+- CyberSecurity finding meeting and make a decition about what needs to be fixed
+- Complate DRBD testing - part 2
+- Finish the metrics of scheduled tasks
+- Make a decition about dual CCH issue
+- New CN and EZ releases
+*/

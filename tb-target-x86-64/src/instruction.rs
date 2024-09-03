@@ -3,13 +3,14 @@ use std::fmt::Debug;
 use strum_macros::EnumDiscriminants;
 use strum_macros::Display;
 use tb_core::instruction::InstructionTrait;
+use tb_core::instruction::InstructionType;
 
 use crate::register::Register;
 use crate::X86AbstractInstruction;
 use crate::X86Location;
 
 #[derive(Debug, Clone, Display, EnumDiscriminants)]
-#[strum_discriminants(name(InstructionType))]
+#[strum_discriminants(name(X86InstructionType))]
 #[strum_discriminants(derive(Display))]
 pub enum X86Instruction {
     Add {
@@ -36,6 +37,14 @@ pub enum X86Instruction {
         comment: Option<String>
     },
     Neg {
+        source: X86Location,
+        comment: Option<String>
+    },
+    Inc {
+        source: X86Location,
+        comment: Option<String>
+    },
+    Dec {
         source: X86Location,
         comment: Option<String>
     },
@@ -69,6 +78,11 @@ pub enum X86Instruction {
         target: X86Location,
         comment: Option<String>
     },
+    Cmp {
+        left: X86Location,
+        right: X86Location,
+        comment: Option<String>
+    },
     Cdq,
     Push(X86Location),
     Pop(X86Location),
@@ -76,8 +90,14 @@ pub enum X86Instruction {
     Ret
 }
 
+impl From<X86Instruction> for X86AbstractInstruction {
+    fn from(value: X86Instruction) -> Self {
+        value.convert()
+    }
+}
+
 impl InstructionTrait for X86Instruction {
-    type IT = InstructionType;
+    type IT = X86InstructionType;
     type REG = Register;
 
     fn convert(self) -> X86AbstractInstruction {
@@ -88,12 +108,15 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::IMul { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Not { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
             X86Instruction::Neg { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
+            X86Instruction::Inc { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
+            X86Instruction::Dec { source, comment } => X86AbstractInstruction::target_with_comment(self, source, comment),
             X86Instruction::And { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Or { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Xor { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Shl { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Shr { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Mov { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
+            X86Instruction::Cmp{ left, right, comment } => X86AbstractInstruction::target_source_with_comment(self, left, right, comment),
             X86Instruction::Push(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Pop(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Comment(comment) => X86AbstractInstruction::simple_with_comment(self, Some(comment)),
@@ -103,7 +126,23 @@ impl InstructionTrait for X86Instruction {
     }
     
     fn name(&self) -> String {
-        let t: InstructionType = self.into();
+        let t: X86InstructionType = self.into();
         t.to_string()
+    }
+    
+    fn instruction_type(&self) -> InstructionType {
+        let x86_inst_type: X86InstructionType = self.clone().into();
+        match x86_inst_type {
+            X86InstructionType::Add
+                | X86InstructionType::Sub
+                | X86InstructionType::IMul
+                | X86InstructionType::IDiv
+                | X86InstructionType::Mov
+                | X86InstructionType::And
+                | X86InstructionType::Or
+                | X86InstructionType::Xor
+            => InstructionType::DataMove,
+            _ => InstructionType::Operation
+        }
     }
 }

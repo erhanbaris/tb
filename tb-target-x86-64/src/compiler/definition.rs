@@ -10,7 +10,7 @@ pub struct X86DefinitionCompiler;
 impl X86DefinitionCompiler {
     pub fn compile(definition: Definition, context: &mut X86ApplicationContext) -> Result<Backend, X86Error> {
         match definition {
-            Definition::Function { name, parameters, block } => Self::compile_function(name, parameters, block, context)
+            Definition::Function { name, parameters, block } => Self::compile_function(name, parameters, block, context),
         }
     }
 

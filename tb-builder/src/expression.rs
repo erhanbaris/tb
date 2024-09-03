@@ -50,6 +50,22 @@ impl ExpressionType {
         }
     }
     
+    pub fn dec(source: String) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::Dec,
+            source: Some(Box::new(Value::Variable(source))),
+            target: None
+        }
+    }
+    
+    pub fn inc(source: String) -> Self {
+        Self {
+            expression_type: ExpressionDiscriminant::Inc,
+            source: Some(Box::new(Value::Variable(source))),
+            target: None
+        }
+    }
+    
     pub fn bitwise_not(source: Value) -> Self {
         Self {
             expression_type: ExpressionDiscriminant::BitwiseNot,
@@ -170,6 +186,12 @@ impl BuilderGenerate for ExpressionType {
                 source: *self.source.unwrap()
             },
             ExpressionDiscriminant::BitwiseNeg => Expression::BitwiseNeg {
+                source: *self.source.unwrap()
+            },
+            ExpressionDiscriminant::Inc => Expression::Inc {
+                source: *self.source.unwrap()
+            },
+            ExpressionDiscriminant::Dec => Expression::Dec {
                 source: *self.source.unwrap()
             },
             ExpressionDiscriminant::Value => Expression::Value(*self.source.unwrap())

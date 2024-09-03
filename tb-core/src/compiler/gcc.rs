@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, process::Command, str};
+use std::{collections::HashMap, path::{Path, PathBuf}, process::Command, str};
 
 use crate::error::TBError;
 
@@ -37,7 +37,7 @@ impl CompilerTrait for GCCCompiler {
         &self.path
     }
     
-    fn compile(&self, file_path: &PathBuf, target: &PathBuf, arguments: HashMap<String, String>) -> Result<(), TBError> {
+    fn compile(&self, file_path: &Path, target: &Path, arguments: HashMap<String, String>) -> Result<(), TBError> {
         let mut command = Command::new(&self.path);
         let mut args = command
             .arg(file_path)

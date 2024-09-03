@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, path::{Path, PathBuf}};
 
 use gcc::GCCCompiler;
 
@@ -24,7 +24,7 @@ pub trait CompilerTrait where Self: Sized {
     fn name(&self) -> &'static str;
     fn version(&self) -> &str;
     fn path(&self) -> &PathBuf;
-    fn compile(&self, file_path: &PathBuf, target: &PathBuf, arguments: HashMap<String, String>) -> Result<(), TBError>;
+    fn compile(&self, file_path: &Path, target: &Path, arguments: HashMap<String, String>) -> Result<(), TBError>;
 }
 
 pub struct TBCompiler;

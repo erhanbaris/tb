@@ -68,6 +68,10 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
             (Some(target), Some(source)) => buffer.push_str(self.get_suffix_from_registers(target, source)),
             (None, None) => ()
         };
+
+        if let Some(label) = inst.label.as_ref() {
+            buffer.push_str(&format!(" {}", label)); 
+        }
         
         if let Some(source) = inst.source1 {
             self.generate_location(source, buffer);

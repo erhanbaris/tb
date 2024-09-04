@@ -27,7 +27,7 @@ fn main() {
     if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
-    main_func_block.add_return_number(0.into());
+    main_func_block.add_return_variable("test1");
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();

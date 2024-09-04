@@ -139,8 +139,17 @@ impl<I> Default for InstructionCollection<I> where I: InstructionTrait {
 }
 
 impl<I> InstructionCollection<I> where I: InstructionTrait {
-    pub fn add_instruction(&mut self, instruction: I) {
-        self.items.push(AsmStructure::Instruction(Box::new(instruction)))
+    pub fn last_instruction_position(&self) -> usize {
+        self.items.len() - 1
+    }
+
+    pub fn add_instruction(&mut self, instruction: I) -> usize {
+        self.items.push(AsmStructure::Instruction(Box::new(instruction)));
+        self.items.len() - 1
+    }
+
+    pub fn update_instruction(&mut self, instruction: I, position: usize) {
+        self.items[position] = AsmStructure::Instruction(Box::new(instruction));
     }
 
     pub fn add_branch(&mut self, name: String) {

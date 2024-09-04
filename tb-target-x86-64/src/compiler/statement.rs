@@ -1,4 +1,4 @@
-use tb_core::types::{Block, Condition, Expression, Statement, Value};
+use tb_core::types::{Block, Condition, ConditionDiscriminant, Expression, Statement, Value};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
@@ -12,7 +12,7 @@ impl X86StatementCompiler {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne, context),
             Statement::Return(expr) => Self::compile_return(scope, expr, context),
-            Statement::If { condition, true_block, false_block } => Self::compile_if(condition, true_block, false_block, context),
+            Statement::If { condition, true_block, false_block } => Self::compile_if(scope, condition, true_block, false_block, context),
         }
     }
     
@@ -40,17 +40,35 @@ impl X86StatementCompiler {
         Ok(())
     }
 
-    fn compile_if(condition: Condition, true_block: Block, false_block: Option<Block>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
-        let mut scope = X86Store::default();
-        
-        X86ConditionCompiler::compile(condition, &mut scope, context)?;
-        X86BlockCompiler::compile(true_block, &mut scope, context)?;
+    fn compile_if(scope: &mut X86Store, condition: Condition, true_block: Block, false_block: Option<Block>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {        
+        let condition_type = X86ConditionCompiler::compile(condition, scope, context)?;
+
+        let fist_jump_location = context.instructions.add_instruction(match condition_type {
+            ConditionDiscriminant::Eq => X86Instruction::Jne("".to_owned()),
+        });
+        X86BlockCompiler::compile(true_block, scope, context)?;
 
         if let Some(false_block) = false_block {
+            let jmp_location = context.instructions.add_instruction(X86Instruction::Jne("".to_owned()));
+
             let else_branch = context.storage.create_branch();
-            context.instructions.add_branch(else_branch);
-            X86BlockCompiler::compile(false_block, &mut scope, context)?;
-        };
+            context.instructions.add_branch(else_branch.clone());
+            X86BlockCompiler::compile(false_block, scope, context)?;
+
+            let end_branch = context.storage.create_branch();
+            context.instructions.add_branch(end_branch.clone());
+            context.instructions.update_instruction(match condition_type {
+                ConditionDiscriminant::Eq => X86Instruction::Jne(else_branch.to_owned()),
+            }, fist_jump_location); // Jump to else block
+            context.instructions.update_instruction(X86Instruction::Jmp(end_branch.to_owned()), jmp_location);
+
+        } else {
+            let end_branch = context.storage.create_branch();
+            context.instructions.add_branch(end_branch.clone());
+            context.instructions.update_instruction(match condition_type {
+                ConditionDiscriminant::Eq => X86Instruction::Jne(end_branch.to_owned()),
+            }, fist_jump_location);
+        }
 
         Ok(())
     }
@@ -60,6 +78,8 @@ impl X86StatementCompiler {
             Some(Value::Variable(variable)) => {
                 if let Some(variable) = scope.find_variable(&variable) {
                     context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Based(-(variable.position as i32), Register::RBP)), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", variable.name)) });
+                } else {
+                    return Err(X86Error::VariableNotFound(variable.clone()));
                 }
             },
             Some(Value::Number(number)) => {

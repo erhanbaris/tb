@@ -82,6 +82,8 @@ pub enum X86Instruction {
         right: X86Location,
         comment: Option<String>
     },
+    Jne(String),
+    Jmp(String),
     Cdq,
     Push(X86Location),
     Pop(X86Location),
@@ -114,9 +116,11 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::Shl { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Shr { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Mov { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
-            X86Instruction::Cmp{ left, right, comment } => X86AbstractInstruction::target_source_with_comment(self, left, right, comment),
+            X86Instruction::Cmp { left, right, comment } => X86AbstractInstruction::target_source_with_comment(self, left, right, comment),
             X86Instruction::Push(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Pop(target) => X86AbstractInstruction::target(self, target),
+            X86Instruction::Jne(label) => X86AbstractInstruction::label(self, label),
+            X86Instruction::Jmp(label) => X86AbstractInstruction::label(self, label),
             X86Instruction::Ret => X86AbstractInstruction::simple(self),
             X86Instruction::Cdq => X86AbstractInstruction::simple(self)
         }

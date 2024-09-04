@@ -1,28 +1,41 @@
 use std::marker::PhantomData;
 
-pub trait StoreDefaultRegisters<R: Clone + PartialEq>: Clone {
+use crate::types::{RegisterSize, RegisterTrait};
+
+pub trait StoreDefaultRegisters<R: RegisterTrait>: Clone {
     fn initialize() -> Vec<(R, bool)>;
 }
 
 #[derive(Debug, Clone)]
-pub struct Store<R: Clone + PartialEq, L: Clone, D: StoreDefaultRegisters<R> + Clone> {
-    variables: Vec<String>,
+pub struct Variable {
+    pub name: String,
+    pub size: u8,
+    pub position: usize
+}
+
+#[derive(Debug, Clone)]
+pub struct Store<R: RegisterTrait, L: Clone, D: StoreDefaultRegisters<R> + Clone> {
+    variables: Vec<Variable>,
+    last_position: usize,
     last_assigned_location: L,
+    last_size: RegisterSize,
     registers: Vec<(R, bool)>,
     _mark: PhantomData<D>
 }
 
 impl<R, L, D> Default for Store<R, L, D>
 where
-    R: Clone + PartialEq,
+    R: RegisterTrait,
     L: Default + Clone,
     D: StoreDefaultRegisters<R> + Clone
 {
     fn default() -> Self {
         Self {
             variables: Default::default(),
+            last_position: 0,
             last_assigned_location: L::default(),
             registers: D::initialize(),
+            last_size: RegisterSize::_32Bit,
             _mark: PhantomData
         }
     }
@@ -30,7 +43,7 @@ where
 
 impl<R, L, D> Store<R, L, D>
 where
-    R: Clone + PartialEq,
+    R: RegisterTrait,
     L: Clone,
     D: StoreDefaultRegisters<R> + Clone
 {
@@ -41,12 +54,19 @@ where
     pub fn set_last_assigned_location(&mut self, location: L) {
         self.last_assigned_location = location;
     }
+    
+    pub fn get_last_size(&self) -> RegisterSize {
+        self.last_size
+    }
 
-    pub fn find_variable(&self, variable: &str) -> Option<usize> {
+    pub fn set_last_size(&mut self, size: RegisterSize) {
+        self.last_size = size;
+    }
+
+    pub fn find_variable(&self, variable: &str) -> Option<&Variable> {
         self.variables
             .iter()
-            .position(|item| item == variable)
-            .map(|item| item + 1)
+            .find(|item| item.name == variable)
     }
 
     pub fn register_backup(&self) -> Vec<(R, bool)> {
@@ -85,26 +105,24 @@ where
         self.registers = registers;
     }
 
-    pub fn add_variable(&mut self, name: &str) -> usize {
-        self.variables.push(name.to_owned());
-        self.variables.len()
+    pub fn add_variable(&mut self, name: &str, size: u8) -> &Variable {
+        self.variables.push(Variable { name: name.to_owned(), size, position: self.last_position + size as usize });
+        self.last_position += size as usize;
+        &self.variables[self.variables.len()-1]
     }
 
-    pub fn add_temp_variable(&mut self) -> usize {
-        self.variables.push(format!(".t{}", self.variables.len()));
-        self.variables.len()
+    pub fn add_temp_variable(&mut self, size: u8) -> &Variable {
+        self.variables.push(Variable { name: format!(".t{}", self.variables.len()), size, position: self.last_position + size as usize });
+        self.last_position += size as usize;
+        &self.variables[self.variables.len()-1]
     }
 
-    pub fn variable_size(&self) -> usize {
-        self.variables.len()
-    }
-
-    pub fn lock_register(&mut self) -> Option<R> {
+    pub fn lock_register(&mut self, num_size: RegisterSize) -> Option<R> {
         for (index, (register, status)) in self.registers.iter().enumerate() {
             if *status {
                 let register = register.clone();
                 self.registers[index] = (register.clone(), false);
-                return Some(register);
+                return Some(register.get_sized(num_size)); // Get register based on size (64: RAX, 32: EAX, 16: AX, 8bit: AL)
             }
         }
         None

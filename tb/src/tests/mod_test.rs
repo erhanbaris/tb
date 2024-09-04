@@ -11,7 +11,7 @@ fn basic_modulo_test_1() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_assign("actual", ExpressionType::modulo(Value::Number(3), Value::Number(5)));
+    main_func_block.add_assign("actual", ExpressionType::modulo(Value::Number(3.into()), Value::Number(5.into())));
     main_func_block.add_return_variable("actual");
     main_func.set_body(main_func_block);
 
@@ -26,8 +26,8 @@ fn basic_module_test_2() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(3)));
-    main_func_block.add_assign("test2", ExpressionType::value(Value::Number(10)));
+    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(3.into())));
+    main_func_block.add_assign("test2", ExpressionType::value(Value::Number(10.into())));
     main_func_block.add_assign("actual", ExpressionType::modulo(Value::Variable("test1".to_owned()), Value::Variable("test2".to_owned())));
     main_func_block.add_return_variable("actual");
     main_func.set_body(main_func_block);

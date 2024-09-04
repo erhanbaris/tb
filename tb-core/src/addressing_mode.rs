@@ -1,16 +1,16 @@
 use std::fmt::{Debug, Display};
 
-
+use crate::types::RegisterTrait;
 
 #[derive(Debug)]
 #[derive(Copy, Clone)]
-pub enum AddressingMode<R: Clone + PartialEq + Debug> {
+pub enum AddressingMode<R: RegisterTrait> {
     Direct(R),
     Indirect(R),
     Based(i32, R)
 }
 
-impl<R> Display for AddressingMode<R> where R: Clone + PartialEq + Debug {
+impl<R> Display for AddressingMode<R> where R: RegisterTrait {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AddressingMode::Direct(reg) => write!(f, "%{:?}", reg),
@@ -20,7 +20,7 @@ impl<R> Display for AddressingMode<R> where R: Clone + PartialEq + Debug {
     }
 }
 
-impl<R> AddressingMode<R> where R: Clone + PartialEq + Debug {
+impl<R> AddressingMode<R> where R: RegisterTrait {
     pub fn create_based(base: i32, register: R) -> Self {
         match base {
             0 => AddressingMode::Direct(register),

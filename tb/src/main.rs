@@ -3,7 +3,7 @@ use std::{fs::File, io::Write, path::PathBuf, process::Command, str::FromStr};
 use log::LevelFilter;
 use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode};
 use tb_builder::{ApplicationType, BlockType, ConditionType, ExpressionType, FunctionType, IfBlockType};
-use tb_core::{compiler::{CompilerTrait, TBCompiler}, types::Value};
+use tb_core::{compiler::{CompilerTrait, TBCompiler}, types::{Number, Value}};
 use tb_target_x86_64::generator::X86AssemblyGenerator;
 
 #[cfg(test)]
@@ -14,15 +14,20 @@ fn main() {
 
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
+
     let mut if_condition_true_block = BlockType::default();
-    if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(10)));
+    if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(3))));
+
+    let mut if_condition_false_block = BlockType::default();
+    if_condition_false_block.add_assign("test1", ExpressionType::value(Value::Number(5.into())));
 
     let mut if_condition = IfBlockType::default();
-    if_condition.set_condition(ConditionType::eq(Value::Number(10), Value::Number(10)));
+    if_condition.set_condition(ConditionType::eq(Value::Number(Number::U64(10)), Value::Number(Number::U64(10))));
     if_condition.set_true_block(if_condition_true_block);
+    if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
-    main_func_block.add_return_number(0);
+    main_func_block.add_return_number(0.into());
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();

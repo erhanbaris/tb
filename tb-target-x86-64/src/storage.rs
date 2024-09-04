@@ -6,8 +6,8 @@ pub struct X86Storage {
 }
 
 impl X86Storage {
-    pub fn get_branch(&mut self) -> String {
-        let name = format!(".L{}", self.branch_counter);
+    pub fn create_branch(&mut self) -> String {
+        let name = format!("L{}", self.branch_counter);
         self.branch_counter += 1;
         name
     }

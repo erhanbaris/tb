@@ -11,7 +11,7 @@ fn basic_return_test_1() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_return_number(0);
+    main_func_block.add_return_number(0.into());
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();
@@ -25,7 +25,7 @@ fn basic_return_test_2() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_return_number(10);
+    main_func_block.add_return_number(10.into());
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();
@@ -39,7 +39,7 @@ fn basic_return_test_3() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(0)));
+    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(0.into())));
     main_func_block.add_return_variable("test1");
     main_func.set_body(main_func_block);
 
@@ -54,7 +54,7 @@ fn basic_return_test_4() {
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
 
-    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(10)));
+    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(10.into())));
     main_func_block.add_return_variable("test1");
     main_func.set_body(main_func_block);
 

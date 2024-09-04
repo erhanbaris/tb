@@ -20,6 +20,14 @@ impl TBSyntaxGenerator {
 }
 
 #[derive(Debug, Clone)]
+pub enum DataItem {
+    String {
+        location: String,
+        value: String
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum AsmStructure<I: InstructionTrait> {
     Branch(String),
     BranchFinished,

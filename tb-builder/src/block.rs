@@ -1,4 +1,4 @@
-use tb_core::types::{Block, Statement, Value};
+use tb_core::types::{Block, Number, Statement, Value};
 
 use crate::if_block::IfBlockType;
 
@@ -30,7 +30,7 @@ impl BlockType {
         self.items.push(Statement::Return(None))
     }
 
-    pub fn add_return_number(&mut self, value: i64) {
+    pub fn add_return_number(&mut self, value: Number) {
         self.items.push(Statement::Return(Some(Value::Number(value))))
     }
 

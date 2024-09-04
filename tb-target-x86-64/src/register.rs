@@ -66,6 +66,16 @@ impl RegisterTrait for Register {
     fn get_register_size(&self) -> RegisterSize {
         REGISTER_SIZES[*self as usize]
     }
+    
+    fn get_sized(self, size: RegisterSize) -> Self {
+        let info = self.get_info();
+        match size {
+            RegisterSize::_8Bit => info._8bit_low,
+            RegisterSize::_16Bit => info._16bit,
+            RegisterSize::_32Bit => info._32bit,
+            RegisterSize::_64Bit => info._64bit,
+        }
+    }
 }
 
 pub const REGISTER_SIZES: [RegisterSize; 68] = [

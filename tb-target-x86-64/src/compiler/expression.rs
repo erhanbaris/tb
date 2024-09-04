@@ -59,7 +59,7 @@ impl X86ExpressionCompiler {
                 
                 // Get target type information
                 match get_fixed_type(special_info) {
-                    Some(FixedType::AnyRegister) => scope.lock_register().map(|reg| X86Location::Register(AddressingMode::Direct(reg))),
+                    Some(FixedType::AnyRegister) => scope.lock_register(scope.get_last_size()).map(|reg| X86Location::Register(AddressingMode::Direct(reg))),
                     Some(FixedType::Register(expected_register, expected_size)) => {
                         // The register not used, so, we can use it
                         if scope.is_free(expected_register) {
@@ -109,7 +109,7 @@ impl X86ExpressionCompiler {
 
         if let Some(mode) = source.get_addressing_mode() {
             if !mode.is_direct_register() {
-                let new_reg = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
+                let new_reg = scope.lock_register(scope.get_last_size()).ok_or(X86Error::NoRegisterAvailable)?;
                 context.instructions.add_instruction(X86Instruction::Mov { source, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
                 source = X86Location::Register(X86AddressingMode::Direct(new_reg));
             }
@@ -149,7 +149,7 @@ impl X86ExpressionCompiler {
 
         if let Some(mode) = divider.get_addressing_mode() {
             if !mode.is_direct_register() {
-                let new_reg = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
+                let new_reg = scope.lock_register(scope.get_last_size()).ok_or(X86Error::NoRegisterAvailable)?;
                 context.instructions.add_instruction(X86Instruction::Mov { source: divider, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
                 divider = X86Location::Register(X86AddressingMode::Direct(new_reg));
             }
@@ -175,7 +175,7 @@ impl X86ExpressionCompiler {
 
         if let Some(mode) = source.get_addressing_mode() {
             if !mode.is_direct_register() {
-                let new_reg = scope.lock_register().ok_or(X86Error::NoRegisterAvailable)?;
+                let new_reg = scope.lock_register(scope.get_last_size()).ok_or(X86Error::NoRegisterAvailable)?;
                 context.instructions.add_instruction(X86Instruction::Mov { source, target: X86Location::Register(X86AddressingMode::Direct(new_reg)), comment: Some("Move address to reg for calculation".to_owned()) });
                 source = X86Location::Register(X86AddressingMode::Direct(new_reg));
             }

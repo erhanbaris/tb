@@ -1,4 +1,4 @@
-use tb_core::{types::{Definition, Value}, tool::os_defs};
+use tb_core::{tool::os_defs, types::{Definition, Number, Value}};
 
 use crate::BlockType;
 
@@ -34,7 +34,7 @@ impl FunctionType {
         self.parameters.push(Value::Variable(name.to_owned()));
     }
 
-    pub fn add_number_parameter(&mut self, value: i64) {
+    pub fn add_number_parameter(&mut self, value: Number) {
         self.parameters.push(Value::Number(value));
     }
 

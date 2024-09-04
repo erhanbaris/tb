@@ -3,12 +3,12 @@ use std::fmt::{Debug, Display};
 
 use strum_macros::EnumDiscriminants;
 
-use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::AsmStructure, tool::{os_defs, OsSpecificDefs}};
+use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::{AsmStructure, DataItem}, tool::{os_defs, OsSpecificDefs}};
 
 #[derive(Debug, Clone)]
 pub enum Value {
     Variable(String),
-    Number(i64),
+    Number(Number),
 }
 
 #[derive(Debug, Clone, EnumDiscriminants)]
@@ -108,6 +108,24 @@ pub struct Block {
 
 
 #[derive(Debug)]
+#[derive(Default)]
+pub struct DataItemCollection {
+    pub items: Vec<DataItem>,
+}
+
+impl DataItemCollection {
+    pub fn add_string_data(&mut self, data: String) -> String {
+        let location = format!("LC{}", self.items.len() + 1);
+        self.items.push(DataItem::String {
+            location: location.to_owned(),
+            value: data
+        });
+
+        location
+    }
+}
+
+#[derive(Debug)]
 pub struct InstructionCollection<I: InstructionTrait> {
     pub items: Vec<AsmStructure<I>>,
 }
@@ -154,8 +172,8 @@ impl<I, S> Default for ApplicationContext<I, S> where I: InstructionTrait, S: St
     }
 }
 
-#[derive(Debug)]
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, EnumDiscriminants)]
+#[strum_discriminants(name(NumberType))]
 pub enum Number {
     I8(i8),
     U8(u8),
@@ -166,7 +184,38 @@ pub enum Number {
     I64(i64),
     U64(u64),
     Float(f32),
+    Double(f64),
     Bool(bool),
+}
+
+impl From<i8> for Number { fn from(value:  i8) -> Self { Number::I8(value) } }
+impl From<u8> for Number { fn from(value:  u8) -> Self { Number::U8(value) } }
+impl From<i16> for Number { fn from(value: i16) -> Self { Number::I16(value) } }
+impl From<u16> for Number { fn from(value: u16) -> Self { Number::U16(value) } }
+impl From<i32> for Number { fn from(value: i32) -> Self { Number::I32(value) } }
+impl From<u32> for Number { fn from(value: u32) -> Self { Number::U32(value) } }
+impl From<i64> for Number { fn from(value: i64) -> Self { Number::I64(value) } }
+impl From<u64> for Number { fn from(value: u64) -> Self { Number::U64(value) } }
+impl From<f32> for Number { fn from(value: f32) -> Self { Number::Float(value) } }
+impl From<f64> for Number { fn from(value: f64) -> Self { Number::Double(value) } }
+impl From<bool> for Number { fn from(value: bool) -> Self { Number::Bool(value) } }
+
+impl Number {
+    pub fn size(&self) -> RegisterSize {
+        match self {
+            Number::I8(_) => RegisterSize::_8Bit,
+            Number::U8(_) => RegisterSize::_8Bit,
+            Number::I16(_) => RegisterSize::_16Bit,
+            Number::U16(_) => RegisterSize::_16Bit,
+            Number::I32(_) => RegisterSize::_32Bit,
+            Number::U32(_) => RegisterSize::_32Bit,
+            Number::I64(_) => RegisterSize::_64Bit,
+            Number::U64(_) => RegisterSize::_64Bit,
+            Number::Float(_) => RegisterSize::_32Bit,
+            Number::Double(_) => RegisterSize::_64Bit,
+            Number::Bool(_) => RegisterSize::_8Bit,
+        }
+    }
 }
 
 impl Display for Number {
@@ -181,6 +230,7 @@ impl Display for Number {
             Number::I64(num) => write!(f, "{}", num),
             Number::U64(num) => write!(f, "{}", num),
             Number::Float(num) => write!(f, "{}", num),
+            Number::Double(num) => write!(f, "{}", num),
             Number::Bool(val) => write!(f, "{}", match val {
                 true => 1,
                 false => 0
@@ -201,6 +251,18 @@ pub enum RegisterSize {
     _64Bit = 3
 }
 
+impl From<u8> for RegisterSize {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => RegisterSize::_8Bit,
+            2 => RegisterSize::_16Bit,
+            4 => RegisterSize::_32Bit,
+            _ => RegisterSize::_64Bit
+        }
+    }
+}
+
 pub trait RegisterTrait: Clone + PartialEq + Debug + ToString {
     fn get_register_size(&self) -> RegisterSize;
+    fn get_sized(self, size: RegisterSize) -> Self;
 }

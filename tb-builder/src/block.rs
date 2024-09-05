@@ -26,6 +26,12 @@ impl BlockType {
         })
     }
 
+    pub fn add_call(&mut self, name: String) {
+        self.items.push(Statement::Call {
+            name
+        })
+    }
+
     pub fn add_return(&mut self) {
         self.items.push(Statement::Return(None))
     }

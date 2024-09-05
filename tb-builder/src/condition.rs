@@ -17,6 +17,46 @@ impl ConditionType {
             left: Some(Box::new(left))
         }
     }
+
+    pub fn ne(left: Value, right: Value) -> Self {
+        Self {
+            condition_type: ConditionDiscriminant::Ne,
+            right: Some(Box::new(right)),
+            left: Some(Box::new(left))
+        }
+    }
+
+    pub fn gr(left: Value, right: Value) -> Self {
+        Self {
+            condition_type: ConditionDiscriminant::Gr,
+            right: Some(Box::new(right)),
+            left: Some(Box::new(left))
+        }
+    }
+
+    pub fn ge(left: Value, right: Value) -> Self {
+        Self {
+            condition_type: ConditionDiscriminant::Ge,
+            right: Some(Box::new(right)),
+            left: Some(Box::new(left))
+        }
+    }
+
+    pub fn ls(left: Value, right: Value) -> Self {
+        Self {
+            condition_type: ConditionDiscriminant::Ls,
+            right: Some(Box::new(right)),
+            left: Some(Box::new(left))
+        }
+    }
+
+    pub fn le(left: Value, right: Value) -> Self {
+        Self {
+            condition_type: ConditionDiscriminant::Le,
+            right: Some(Box::new(right)),
+            left: Some(Box::new(left))
+        }
+    }
 }
 
 impl Default for ConditionType {
@@ -31,6 +71,26 @@ impl BuilderGenerate for ConditionType {
     fn convert(self) -> Self::Output {
         match self.condition_type {
             ConditionDiscriminant::Eq => Condition::Eq {
+                left: *self.left.unwrap(),
+                right: *self.right.unwrap()
+            },
+            ConditionDiscriminant::Ne => Condition::Ne {
+                left: *self.left.unwrap(),
+                right: *self.right.unwrap()
+            },
+            ConditionDiscriminant::Gr => Condition::Gr {
+                left: *self.left.unwrap(),
+                right: *self.right.unwrap()
+            },
+            ConditionDiscriminant::Ge => Condition::Ge {
+                left: *self.left.unwrap(),
+                right: *self.right.unwrap()
+            },
+            ConditionDiscriminant::Ls => Condition::Ls {
+                left: *self.left.unwrap(),
+                right: *self.right.unwrap()
+            },
+            ConditionDiscriminant::Le => Condition::Le {
                 left: *self.left.unwrap(),
                 right: *self.right.unwrap()
             }

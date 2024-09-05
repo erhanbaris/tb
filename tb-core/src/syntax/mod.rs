@@ -19,12 +19,16 @@ impl TBSyntaxGenerator {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct DataItem {
+    pub label: String,
+    pub values: Vec<Data>
+}
+
 #[derive(Debug, Clone)]
-pub enum DataItem {
-    String {
-        location: String,
-        value: String
-    }
+pub enum Data {
+    String(String),
+    Byte(u8)
 }
 
 #[derive(Debug, Clone)]

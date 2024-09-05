@@ -16,22 +16,29 @@ fn main() {
     let mut main_func_block = BlockType::default();
 
     let mut if_condition_true_block = BlockType::default();
-    if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(3))));
+    if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(1))));
 
     let mut if_condition_false_block = BlockType::default();
-    if_condition_false_block.add_assign("test1", ExpressionType::value(Value::Number(5.into())));
+    if_condition_false_block.add_assign("test1", ExpressionType::value(Value::Number(0.into())));
 
     let mut if_condition = IfBlockType::default();
-    if_condition.set_condition(ConditionType::eq(Value::Number(Number::U64(10)), Value::Number(Number::U64(10))));
+    if_condition.set_condition(ConditionType::ne(Value::Number(Number::U64(0)), Value::Number(Number::U64(10))));
     if_condition.set_true_block(if_condition_true_block);
     if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
+    main_func_block.add_call("printf".to_owned());
     main_func_block.add_return_variable("test1");
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();
     application_type.add_function(main_func);
+    application_type.add_string_data("string1", "This is a string1.");
+    application_type.add_byte_data("string1", 1);
+    
+    application_type.add_string_data("string2", "This is a string2.");
+    application_type.add_byte_data("string2", 2);
+
     let buffer = application_type.build::<X86AssemblyGenerator>();
     // println!("{}", &buffer);
 

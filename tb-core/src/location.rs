@@ -3,11 +3,12 @@ use std::fmt::Debug;
 use crate::types::{Number, RegisterTrait};
 use crate::addressing_mode::AddressingMode;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum Location<R: RegisterTrait> {
     Memory(i64),
     Register(AddressingMode<R>),
-    Imm(Number)
+    Imm(Number),
+    Label(String)
 }
 
 impl<R> Default for Location<R> where R: RegisterTrait {

@@ -1,4 +1,4 @@
-use tb_core::types::{Block, Condition, ConditionDiscriminant, Expression, Statement, Value};
+use tb_core::{location::Location, types::{Block, Condition, ConditionDiscriminant, Expression, Number, Statement, Value}};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
@@ -11,8 +11,20 @@ impl X86StatementCompiler {
     pub fn compile(statement: Statement, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne, context),
+            Statement::Call { name } => Self::compile_call(scope, name, context),
             Statement::Return(expr) => Self::compile_return(scope, expr, context),
             Statement::If { condition, true_block, false_block } => Self::compile_if(scope, condition, true_block, false_block, context),
+        }
+    }
+
+    fn get_jump_instruction(condition_type: ConditionDiscriminant, label: &str) -> X86Instruction {
+        match condition_type {
+            ConditionDiscriminant::Eq => X86Instruction::Jne(label.to_owned()),
+            ConditionDiscriminant::Ne => X86Instruction::Je(label.to_owned()),
+            ConditionDiscriminant::Gr => X86Instruction::Jnb(label.to_owned()),
+            ConditionDiscriminant::Ge => X86Instruction::Jnbe(label.to_owned()),
+            ConditionDiscriminant::Ls => X86Instruction::Jna(label.to_owned()),
+            ConditionDiscriminant::Le => X86Instruction::Jnae(label.to_owned()),
         }
     }
     
@@ -39,13 +51,26 @@ impl X86StatementCompiler {
         scope.register_restore(registers);
         Ok(())
     }
+    
+    fn compile_call(scope: &mut X86Store, name: String, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+        let registers = scope.register_backup();
+        let label = context.datas.create_label();
+        
+        context.datas.add_string_data(&label, "%d"); // printf testing code
+        //  movl    $0, %eax
+        context.instructions.add_instruction(X86Instruction::Mov { source: Location::Imm(Number::U32(22)), target: X86Location::Register(X86AddressingMode::Direct(Register::ESI)), comment: Some(format!("call {}", name)) });
+        context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::RDI)), comment: Some(format!("call {}", name)) });
+        context.instructions.add_instruction(X86Instruction::Call(name));
+        scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call instruction write last information into RAX register
+        scope.register_restore(registers);
+        Ok(())
+    }
 
     fn compile_if(scope: &mut X86Store, condition: Condition, true_block: Block, false_block: Option<Block>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {        
         let condition_type = X86ConditionCompiler::compile(condition, scope, context)?;
 
-        let fist_jump_location = context.instructions.add_instruction(match condition_type {
-            ConditionDiscriminant::Eq => X86Instruction::Jne("".to_owned()),
-        });
+        let fist_jump_location = context.instructions.add_instruction(Self::get_jump_instruction(condition_type, ""));
+
         X86BlockCompiler::compile(true_block, scope, context)?;
 
         if let Some(false_block) = false_block {
@@ -57,17 +82,13 @@ impl X86StatementCompiler {
 
             let end_branch = context.storage.create_branch();
             context.instructions.add_branch(end_branch.clone());
-            context.instructions.update_instruction(match condition_type {
-                ConditionDiscriminant::Eq => X86Instruction::Jne(else_branch.to_owned()),
-            }, fist_jump_location); // Jump to else block
+            context.instructions.update_instruction(Self::get_jump_instruction(condition_type, &else_branch), fist_jump_location); // Jump to else block
             context.instructions.update_instruction(X86Instruction::Jmp(end_branch.to_owned()), jmp_location);
 
         } else {
             let end_branch = context.storage.create_branch();
             context.instructions.add_branch(end_branch.clone());
-            context.instructions.update_instruction(match condition_type {
-                ConditionDiscriminant::Eq => X86Instruction::Jne(end_branch.to_owned()),
-            }, fist_jump_location);
+            context.instructions.update_instruction(Self::get_jump_instruction(condition_type, &end_branch), fist_jump_location);
         }
 
         Ok(())

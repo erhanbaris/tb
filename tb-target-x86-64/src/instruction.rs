@@ -52,6 +52,11 @@ pub enum X86Instruction {
         target: X86Location,
         comment: Option<String>
     },
+    Lea {
+        source: X86Location,
+        target: X86Location,
+        comment: Option<String>
+    },
     And {
         source: X86Location,
         target: X86Location,
@@ -82,7 +87,13 @@ pub enum X86Instruction {
         right: X86Location,
         comment: Option<String>
     },
+    Call(String),
     Jne(String),
+    Je(String),
+    Jnb(String),
+    Jnbe(String),
+    Jna(String),
+    Jnae(String),
     Jmp(String),
     Cdq,
     Push(X86Location),
@@ -116,10 +127,17 @@ impl InstructionTrait for X86Instruction {
             X86Instruction::Shl { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Shr { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
             X86Instruction::Mov { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
-            X86Instruction::Cmp { left, right, comment } => X86AbstractInstruction::target_source_with_comment(self, left, right, comment),
+            X86Instruction::Lea { source, target, comment } => X86AbstractInstruction::target_source_with_comment(self, target, source, comment),
+            X86Instruction::Cmp { left, right, comment } => X86AbstractInstruction::target_source_with_comment(self, right, left, comment),
             X86Instruction::Push(target) => X86AbstractInstruction::target(self, target),
             X86Instruction::Pop(target) => X86AbstractInstruction::target(self, target),
+            X86Instruction::Call(label) => X86AbstractInstruction::label(self, label),
             X86Instruction::Jne(label) => X86AbstractInstruction::label(self, label),
+            X86Instruction::Je(label) => X86AbstractInstruction::label(self, label),
+            X86Instruction::Jnb(label) => X86AbstractInstruction::label(self, label),
+            X86Instruction::Jnbe(label) => X86AbstractInstruction::label(self, label),
+            X86Instruction::Jna(label) => X86AbstractInstruction::label(self, label),
+            X86Instruction::Jnae(label) => X86AbstractInstruction::label(self, label),
             X86Instruction::Jmp(label) => X86AbstractInstruction::label(self, label),
             X86Instruction::Ret => X86AbstractInstruction::simple(self),
             X86Instruction::Cdq => X86AbstractInstruction::simple(self)

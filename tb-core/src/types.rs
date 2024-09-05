@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display};
 
 use strum_macros::EnumDiscriminants;
 
-use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::{AsmStructure, DataItem}, tool::{os_defs, OsSpecificDefs}};
+use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::{AsmStructure, Data, DataItem}, tool::{os_defs, OsSpecificDefs}};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -75,7 +75,27 @@ pub enum Condition {
     Eq {
         left: Value,
         right: Value
-    }
+    },
+    Ne {
+        left: Value,
+        right: Value
+    },
+    Gr {
+        left: Value,
+        right: Value
+    },
+    Ge {
+        left: Value,
+        right: Value
+    },
+    Ls {
+        left: Value,
+        right: Value
+    },
+    Le {
+        left: Value,
+        right: Value
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -88,6 +108,9 @@ pub enum Statement {
         condition: Condition,
         true_block: Block,
         false_block: Option<Block>
+    },
+    Call {
+        name: String
     },
     Return(Option<Value>)
 }
@@ -107,21 +130,34 @@ pub struct Block {
 }
 
 
-#[derive(Debug)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct DataItemCollection {
     pub items: Vec<DataItem>,
 }
 
 impl DataItemCollection {
-    pub fn add_string_data(&mut self, data: String) -> String {
-        let location = format!("LC{}", self.items.len() + 1);
-        self.items.push(DataItem::String {
-            location: location.to_owned(),
-            value: data
-        });
+    pub fn add_string_data<L: AsRef<str>, D: AsRef<str>>(&mut self, label: L, data: D) {
+        match self.items.iter_mut().find(|item| item.label == label.as_ref()) {
+            Some(item) => item.values.push(Data::String(data.as_ref().to_owned())),
+            None => {
+                let data = DataItem { label: label.as_ref().to_owned(), values: vec![Data::String(data.as_ref().to_owned())] };
+                self.items.push(data);
+            },
+        };
+    }
 
-        location
+    pub fn add_byte_data<L: AsRef<str>>(&mut self, label: L, data: u8) {
+        match self.items.iter_mut().find(|item| item.label == label.as_ref()) {
+            Some(item) => item.values.push(Data::Byte(data)),
+            None => {
+                let data = DataItem { label: label.as_ref().to_owned(), values: vec![Data::Byte(data)] };
+                self.items.push(data);
+            },
+        };
+    }
+
+    pub fn create_label(&mut self) -> String {
+        format!("LC{}", self.items.len() + 1)
     }
 }
 
@@ -168,6 +204,7 @@ impl<I> InstructionCollection<I> where I: InstructionTrait {
 pub struct ApplicationContext<I: InstructionTrait, S: StorageTrait> {
     pub os_specific_defs: Box<dyn OsSpecificDefs>,
     pub instructions: InstructionCollection<I>,
+    pub datas: DataItemCollection,
     pub storage: S
 }
 
@@ -176,6 +213,7 @@ impl<I, S> Default for ApplicationContext<I, S> where I: InstructionTrait, S: St
         Self {
             os_specific_defs: os_defs(),
             storage: Default::default(),
+            datas: Default::default(),
             instructions: Default::default()
         }
     }
@@ -249,7 +287,7 @@ impl Display for Number {
 }
 
 pub trait AssemblyGenerator: Default {
-    fn generate(&self, definitions: Vec<Definition>) -> String;
+    fn generate(&self, definitions: Vec<Definition>, datas: DataItemCollection) -> String;
 }
 
 #[derive(Ord, Eq, PartialOrd, Debug, Copy, Clone, PartialEq)]

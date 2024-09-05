@@ -116,20 +116,20 @@ impl X86ExpressionCompiler {
         }
 
         let instruction = match inst_type {
-            X86InstructionType::Add => X86Instruction::Add { source, target, comment: None },
-            X86InstructionType::Sub => X86Instruction::Sub { source, target, comment: None },
-            X86InstructionType::IMul => X86Instruction::IMul { source, target, comment: None },
-            X86InstructionType::And => X86Instruction::And { source, target, comment: None },
-            X86InstructionType::Or => X86Instruction::Or { source, target, comment: None },
-            X86InstructionType::Xor => X86Instruction::Xor { source, target, comment: None },
-            X86InstructionType::Shl => X86Instruction::Shl { source, target, comment: None },
-            X86InstructionType::Shr => X86Instruction::Shr { source, target, comment: None },
+            X86InstructionType::Add => X86Instruction::Add { source, target: target.clone(), comment: None },
+            X86InstructionType::Sub => X86Instruction::Sub { source, target: target.clone(), comment: None },
+            X86InstructionType::IMul => X86Instruction::IMul { source, target: target.clone(), comment: None },
+            X86InstructionType::And => X86Instruction::And { source, target: target.clone(), comment: None },
+            X86InstructionType::Or => X86Instruction::Or { source, target: target.clone(), comment: None },
+            X86InstructionType::Xor => X86Instruction::Xor { source, target: target.clone(), comment: None },
+            X86InstructionType::Shl => X86Instruction::Shl { source, target: target.clone(), comment: None },
+            X86InstructionType::Shr => X86Instruction::Shr { source, target: target.clone(), comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 
         context.instructions.add_instruction(instruction);
         scope.register_restore(registers);
-        scope.set_last_assigned_location(target);
+        scope.set_last_assigned_location(target.clone());
 
         if let Some(register) = target.get_register() {
             scope.mark_register(register);
@@ -156,7 +156,7 @@ impl X86ExpressionCompiler {
         }
 
         context.instructions.add_instruction(X86Instruction::Cdq);
-        context.instructions.add_instruction(X86Instruction::IDiv { target: divider, comment: None });
+        context.instructions.add_instruction(X86Instruction::IDiv { target: divider.clone(), comment: None });
         scope.register_restore(registers);
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(target_register)));
 
@@ -182,16 +182,16 @@ impl X86ExpressionCompiler {
         }
 
         let instruction = match inst {
-            X86InstructionType::Neg => X86Instruction::Neg { source, comment: None },
-            X86InstructionType::Not => X86Instruction::Not { source, comment: None },
-            X86InstructionType::Inc => X86Instruction::Inc { source, comment: None },
-            X86InstructionType::Dec => X86Instruction::Dec { source, comment: None },
+            X86InstructionType::Neg => X86Instruction::Neg { source: source.clone(), comment: None },
+            X86InstructionType::Not => X86Instruction::Not { source: source.clone(), comment: None },
+            X86InstructionType::Inc => X86Instruction::Inc { source: source.clone(), comment: None },
+            X86InstructionType::Dec => X86Instruction::Dec { source: source.clone(), comment: None },
             _ => return Err(X86Error::UnexpectedInstruction)
         };
 
         context.instructions.add_instruction(instruction);
         scope.register_restore(registers);
-        scope.set_last_assigned_location(source);
+        scope.set_last_assigned_location(source.clone());
 
         if let Some(register) = source.get_register() {
             scope.mark_register(register);

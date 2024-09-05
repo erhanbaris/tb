@@ -20,6 +20,7 @@ mod bitwise_xor_test;
 mod shift_left_test;
 mod inc_test;
 mod dec_test;
+mod if_test;
 
 pub fn get_exit_code(application: ApplicationType, file_name: &str, exit_code: i32) {
     let mut source_file_name = temp_dir();

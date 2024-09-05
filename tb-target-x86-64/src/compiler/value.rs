@@ -21,7 +21,7 @@ impl X86ValueCompiler {
                     // Copy value from stack to new location
                     context.instructions.add_instruction(X86Instruction::Mov {
                         source: X86Location::Register(X86AddressingMode::create_based(-(variable_position as i32), Register::RBP)),
-                        target,
+                        target: target.clone(),
                         comment: None
                     });
 
@@ -38,7 +38,7 @@ impl X86ValueCompiler {
 
                 match target {
                     Some(target) => {
-                        context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Imm(num), target, comment: None });
+                        context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Imm(num), target: target.clone(), comment: None });
                         Ok(target)
                     },
                     None => {

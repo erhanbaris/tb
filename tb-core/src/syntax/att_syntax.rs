@@ -2,7 +2,7 @@ use std::{cell::Cell, fmt::Debug, marker::PhantomData};
 
 use crate::{addressing_mode::AddressingMode, instruction::{AbstractInstruction, InstructionTrait, StorageTrait}, location::Location, types::{ApplicationContext, RegisterSize, RegisterTrait}};
 
-use super::{AsmStructure, SyntaxGeneratorTrait};
+use super::{AsmStructure, DataItem, SyntaxGeneratorTrait};
 
 #[derive(Debug, Clone)]
 pub struct ATTSyntaxGenerator<I> where I: InstructionTrait {
@@ -19,8 +19,13 @@ impl<I> Default for ATTSyntaxGenerator<I> where I: InstructionTrait {
 impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTrait {
     fn generate<S: StorageTrait>(&self, context: &mut ApplicationContext<I, S>) -> String {
         let mut buffer = String::new();
-        buffer.push_str(&format!(".globl {}\r\n", context.os_specific_defs.main_function_name()));
 
+        for item in context.datas.items.clone().into_iter() {
+            self.process_data(item, &mut buffer);
+        }
+
+        buffer.push_str("\r\n.text\r\n");
+        buffer.push_str(&format!(".globl {}\r\n", context.os_specific_defs.main_function_name()));
         for item in context.instructions.items.clone().into_iter() {
             self.process_item(item, context, &mut buffer);
         }
@@ -31,6 +36,16 @@ impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTr
 }
 
 impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
+    fn process_data(&self, item: DataItem, buffer: &mut String) {
+        buffer.push_str(&format!("\r\n.text\r\n.section	.rodata\r\n.{}:\r\n", &item.label));
+        for data in item.values.clone().into_iter() {
+            match data {
+                super::Data::String(data) => buffer.push_str(&format!("    .ascii \"{}\"\r\n", &data.replace("\"", "\\\""))),
+                super::Data::Byte(data) => buffer.push_str(&format!("    .byte {}\r\n", &data)),
+            }
+        }
+    }
+
     fn process_item<S: StorageTrait>(&self, item: AsmStructure<I>, context: &mut ApplicationContext<I, S>, buffer: &mut String) {
         match item {
             AsmStructure::Branch(name) => self.generate_branch(name, context, buffer),
@@ -50,6 +65,7 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
                 AddressingMode::Based(num, reg) => buffer.push_str(&format!("{}(%{})", num, reg.to_string().to_lowercase())),
             },
             Location::Imm(imm) => buffer.push_str(&format!("${}", imm)),
+            Location::Label(label) => buffer.push_str(&format!(".{}(%rip)", label)),
         }
     }
 

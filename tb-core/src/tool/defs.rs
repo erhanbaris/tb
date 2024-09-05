@@ -19,7 +19,7 @@ impl OsSpecificDefs for MacSpecificDefs {
     }
 
     fn end_of_file_instructions(&self) -> &'static str {
-        ".ident	\"TB v0.1.0\"\r\n.section .note.GNU-stack,\"\",@progbits\r\n"
+        ""
     }
 }
 
@@ -29,7 +29,7 @@ impl OsSpecificDefs for LinuxSpecificDefs {
     }
 
     fn end_of_file_instructions(&self) -> &'static str {
-        ".ident	\"TB v0.1.0\"\r\n.section .note.GNU-stack,\"\",@progbits\r\n"
+        ""
     }
 }
 

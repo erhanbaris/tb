@@ -27,17 +27,17 @@ fn main() {
     if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
-    main_func_block.add_call("printf".to_owned());
+    main_func_block.add_call("printf".to_owned(), vec![Value::String("Hello world".to_owned())]);
     main_func_block.add_return_variable("test1");
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();
     application_type.add_function(main_func);
-    application_type.add_string_data("string1", "This is a string1.");
-    application_type.add_byte_data("string1", 1);
+    //application_type.add_string_data("string1", "This is a string1.");
+    //application_type.add_byte_data("string1", 1);
     
-    application_type.add_string_data("string2", "This is a string2.");
-    application_type.add_byte_data("string2", 2);
+    //application_type.add_string_data("string2", "This is a string2.");
+    //application_type.add_byte_data("string2", 2);
 
     let buffer = application_type.build::<X86AssemblyGenerator>();
     // println!("{}", &buffer);

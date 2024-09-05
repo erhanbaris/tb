@@ -26,9 +26,10 @@ impl BlockType {
         })
     }
 
-    pub fn add_call(&mut self, name: String) {
+    pub fn add_call(&mut self, name: String, arguments: Vec<Value>) {
         self.items.push(Statement::Call {
-            name
+            name,
+            arguments
         })
     }
 

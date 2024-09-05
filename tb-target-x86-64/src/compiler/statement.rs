@@ -11,7 +11,7 @@ impl X86StatementCompiler {
     pub fn compile(statement: Statement, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne, context),
-            Statement::Call { name } => Self::compile_call(scope, name, context),
+            Statement::Call { name, arguments } => Self::compile_call(scope, name, arguments, context),
             Statement::Return(expr) => Self::compile_return(scope, expr, context),
             Statement::If { condition, true_block, false_block } => Self::compile_if(scope, condition, true_block, false_block, context),
         }
@@ -52,7 +52,7 @@ impl X86StatementCompiler {
         Ok(())
     }
     
-    fn compile_call(scope: &mut X86Store, name: String, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+    fn compile_call(scope: &mut X86Store, name: String, _arguments: Vec<Value>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
         let label = context.datas.create_label();
         
@@ -105,6 +105,12 @@ impl X86StatementCompiler {
             },
             Some(Value::Number(number)) => {
                 context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Imm(number), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", number)) });
+            }
+            Some(Value::String(data)) => {
+                let label = context.datas.create_label();
+                context.datas.add_string_data(&label, &data);
+                context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return \"{}\"", data)) });
+                
             }
             None => ()
         };

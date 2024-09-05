@@ -9,6 +9,7 @@ use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::{AsmStructure
 pub enum Value {
     Variable(String),
     Number(Number),
+    String(String)
 }
 
 #[derive(Debug, Clone, EnumDiscriminants)]
@@ -110,7 +111,8 @@ pub enum Statement {
         false_block: Option<Block>
     },
     Call {
-        name: String
+        name: String,
+        arguments: Vec<Value>
     },
     Return(Option<Value>)
 }

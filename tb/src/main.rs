@@ -1,3 +1,4 @@
+use core::str;
 use std::{fs::File, io::Write, path::PathBuf, process::Command, str::FromStr};
 
 use log::LevelFilter;
@@ -27,7 +28,8 @@ fn main() {
     if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
-    main_func_block.add_call("printf".to_owned(), vec![Value::String("Hello world".to_owned())]);
+    main_func_block.add_print("Integer value: %d".to_owned(), Value::Number(Number::U32(1024)));
+    // main_func_block.add_print("String value: %s".to_owned(), Value::String("Hello world".to_owned())); // this is not working now
     main_func_block.add_return_variable("test1");
     main_func.set_body(main_func_block);
 
@@ -51,4 +53,6 @@ fn main() {
     // to test
     let command = Command::new("./out.exe").output().unwrap();
     println!("Exit code: {}", command.status.code().unwrap());
+    println!("Stdout: {}", str::from_utf8(&command.stdout).unwrap_or_default());
+    println!("Stderr: {}", str::from_utf8(&command.stderr).unwrap_or_default());
 }

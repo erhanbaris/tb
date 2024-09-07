@@ -52,7 +52,7 @@ impl X86ValueCompiler {
             Value::String(data) => {
                 let label = context.datas.create_label();
                 context.datas.add_string_data(&label, &data);
-                Ok(X86Location::Label(data))
+                Ok(X86Location::Label(label))
             }
         }
     }

@@ -5,7 +5,8 @@ use strum_macros::EnumDiscriminants;
 
 use crate::{instruction::{InstructionTrait, StorageTrait}, syntax::{AsmStructure, Data, DataItem}, tool::{os_defs, OsSpecificDefs}};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumDiscriminants)]
+#[strum_discriminants(name(ValueType))]
 pub enum Value {
     Variable(String),
     Number(Number),
@@ -110,9 +111,9 @@ pub enum Statement {
         true_block: Block,
         false_block: Option<Block>
     },
-    Call {
-        name: String,
-        arguments: Vec<Value>
+    Print {
+        format: String,
+        argument: Value
     },
     Return(Option<Value>)
 }
@@ -188,6 +189,10 @@ impl<I> InstructionCollection<I> where I: InstructionTrait {
 
     pub fn update_instruction(&mut self, instruction: I, position: usize) {
         self.items[position] = AsmStructure::Instruction(Box::new(instruction));
+    }
+
+    pub fn remove_instruction(&mut self, position: usize) {
+        self.items.remove(position);
     }
 
     pub fn add_branch(&mut self, name: String) {

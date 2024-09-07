@@ -1,8 +1,8 @@
-use tb_core::{location::Location, types::{Block, Condition, ConditionDiscriminant, Expression, Number, Statement, Value}};
+use tb_core::{location::Location, types::{Block, Condition, ConditionDiscriminant, Expression, Statement, Value, ValueType}};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
-use super::{block::X86BlockCompiler, condition::X86ConditionCompiler, error::X86Error, expression::X86ExpressionCompiler};
+use super::{block::X86BlockCompiler, condition::X86ConditionCompiler, error::X86Error, expression::X86ExpressionCompiler, X86ValueCompiler};
 
 pub struct X86StatementCompiler;
 
@@ -11,7 +11,7 @@ impl X86StatementCompiler {
     pub fn compile(statement: Statement, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne, context),
-            Statement::Call { name, arguments } => Self::compile_call(scope, name, arguments, context),
+            Statement::Print { format, argument } => Self::compile_print(scope, format, argument, context),
             Statement::Return(expr) => Self::compile_return(scope, expr, context),
             Statement::If { condition, true_block, false_block } => Self::compile_if(scope, condition, true_block, false_block, context),
         }
@@ -52,15 +52,25 @@ impl X86StatementCompiler {
         Ok(())
     }
     
-    fn compile_call(scope: &mut X86Store, name: String, _arguments: Vec<Value>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+    fn compile_print(scope: &mut X86Store, format: String, argument: Value, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
         let label = context.datas.create_label();
         
-        context.datas.add_string_data(&label, "%d"); // printf testing code
+        context.datas.add_string_data(&label, format); // printf testing code
         //  movl    $0, %eax
-        context.instructions.add_instruction(X86Instruction::Mov { source: Location::Imm(Number::U32(22)), target: X86Location::Register(X86AddressingMode::Direct(Register::ESI)), comment: Some(format!("call {}", name)) });
-        context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::RDI)), comment: Some(format!("call {}", name)) });
-        context.instructions.add_instruction(X86Instruction::Call(name));
+
+        let argument_type: ValueType = argument.clone().into();
+        let argument_location = X86ValueCompiler::compile(argument, context, scope, None)?;
+
+        // todo: make this code more generic
+        if let ValueType::String = argument_type {
+            context.instructions.add_instruction(X86Instruction::Lea { source: argument_location, target: X86Location::Register(X86AddressingMode::Direct(Register::ESI)), comment: None });
+        } else {
+            context.instructions.add_instruction(X86Instruction::Mov { source: argument_location, target: X86Location::Register(X86AddressingMode::Direct(Register::ESI)), comment: None });
+        }
+
+        context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::RDI)), comment: None });
+        context.instructions.add_instruction(X86Instruction::Call("printf".to_owned()));
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call instruction write last information into RAX register
         scope.register_restore(registers);
         Ok(())
@@ -104,12 +114,12 @@ impl X86StatementCompiler {
                 }
             },
             Some(Value::Number(number)) => {
-                context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Imm(number), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return {}", number)) });
+                context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Imm(number), target: X86Location::Register(X86AddressingMode::Direct(Register::RAX)), comment: Some(format!("return {}", number)) });
             }
             Some(Value::String(data)) => {
                 let label = context.datas.create_label();
                 context.datas.add_string_data(&label, &data);
-                context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::EAX)), comment: Some(format!("return \"{}\"", data)) });
+                context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::RAX)), comment: Some(format!("return \"{}\"", data)) });
                 
             }
             None => ()

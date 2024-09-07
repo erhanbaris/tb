@@ -51,6 +51,10 @@ where
         self.last_assigned_location.clone()
     }
 
+    pub fn get_last_position(&self) -> usize {
+        self.last_position.clone()
+    }
+
     pub fn set_last_assigned_location(&mut self, location: L) {
         self.last_assigned_location = location;
     }

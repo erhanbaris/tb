@@ -40,7 +40,7 @@ impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
         buffer.push_str(&format!("\r\n.text\r\n.section	.rodata\r\n.{}:\r\n", &item.label));
         for data in item.values.clone().into_iter() {
             match data {
-                super::Data::String(data) => buffer.push_str(&format!("    .ascii \"{}\"\r\n", &data.replace("\"", "\\\""))),
+                super::Data::String(data) => buffer.push_str(&format!("    .string \"{}\"\r\n", &data.replace("\"", "\\\""))),
                 super::Data::Byte(data) => buffer.push_str(&format!("    .byte {}\r\n", &data)),
             }
         }

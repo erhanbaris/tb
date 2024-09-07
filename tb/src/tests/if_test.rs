@@ -425,3 +425,48 @@ fn less_equal_3() {
     get_exit_code(application_type, "less_equal_3", 0);
 }
 
+#[test]
+fn no_else_1() {
+    let mut main_func = FunctionType::main();
+    let mut main_func_block = BlockType::default();
+
+    let mut if_condition_true_block = BlockType::default();
+    if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(1))));
+
+    let mut if_condition = IfBlockType::default();
+    if_condition.set_condition(ConditionType::eq(Value::Number(Number::U64(10)), Value::Number(Number::U64(10))));
+    if_condition.set_true_block(if_condition_true_block);
+
+    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(0))));
+    main_func_block.add_if(if_condition);
+    main_func_block.add_return_variable("test1");
+    main_func.set_body(main_func_block);
+
+    let mut application_type = ApplicationType::default();
+    application_type.add_function(main_func);
+
+    get_exit_code(application_type, "no_else_1", 1);
+}
+
+#[test]
+fn no_else_2() {
+    let mut main_func = FunctionType::main();
+    let mut main_func_block = BlockType::default();
+
+    let mut if_condition_true_block = BlockType::default();
+    if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(0))));
+
+    let mut if_condition = IfBlockType::default();
+    if_condition.set_condition(ConditionType::eq(Value::Number(Number::U64(0)), Value::Number(Number::U64(10))));
+    if_condition.set_true_block(if_condition_true_block);
+
+    main_func_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(1))));
+    main_func_block.add_if(if_condition);
+    main_func_block.add_return_variable("test1");
+    main_func.set_body(main_func_block);
+
+    let mut application_type = ApplicationType::default();
+    application_type.add_function(main_func);
+
+    get_exit_code(application_type, "no_else_2", 1);
+}

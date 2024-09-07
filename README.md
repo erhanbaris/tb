@@ -1,5 +1,7 @@
 # TB (Timu Backend)
 
+[![codecov](https://codecov.io/gh/erhanbaris/tb/graph/badge.svg?token=FCQFCF5USU)](https://codecov.io/gh/erhanbaris/tb)
+![Build](https://github.com/erhanbaris/tb/actions/workflows/rust.yml/badge.svg)
 
 Project structure:
 

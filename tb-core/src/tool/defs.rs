@@ -1,6 +1,8 @@
 pub trait OsSpecificDefs {
     fn main_function_name(&self) -> &'static str;
     fn end_of_file_instructions(&self) -> &'static str;
+    fn print(&self) -> &'static str;
+    fn readonly_string_section(&self) -> &'static str;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -21,6 +23,14 @@ impl OsSpecificDefs for MacSpecificDefs {
     fn end_of_file_instructions(&self) -> &'static str {
         ""
     }
+    
+    fn print(&self) -> &'static str {
+        "_printf"
+    }
+    
+    fn readonly_string_section(&self) -> &'static str {
+        ".section    __TEXT,__cstring,cstring_literals"
+    }
 }
 
 impl OsSpecificDefs for LinuxSpecificDefs {
@@ -31,6 +41,14 @@ impl OsSpecificDefs for LinuxSpecificDefs {
     fn end_of_file_instructions(&self) -> &'static str {
         ""
     }
+    
+    fn print(&self) -> &'static str {
+        "printf"
+    }
+    
+    fn readonly_string_section(&self) -> &'static str {
+        ".text\r\n.section	.rodata"
+    }
 }
 
 impl OsSpecificDefs for WindowsSpecificDefs {
@@ -40,6 +58,14 @@ impl OsSpecificDefs for WindowsSpecificDefs {
 
     fn end_of_file_instructions(&self) -> &'static str {
         ""
+    }
+    
+    fn print(&self) -> &'static str {
+        "_printf"
+    }
+    
+    fn readonly_string_section(&self) -> &'static str {
+        ".section    __TEXT,__cstring,cstring_literals"
     }
 }
 

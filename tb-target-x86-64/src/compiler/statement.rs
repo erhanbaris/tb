@@ -1,4 +1,4 @@
-use tb_core::{location::Location, types::{Block, Condition, ConditionDiscriminant, Expression, Statement, Value, ValueType}};
+use tb_core::{location::Location, types::{Block, Condition, ConditionDiscriminant, Expression, Statement, Value}};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
@@ -52,25 +52,19 @@ impl X86StatementCompiler {
         Ok(())
     }
     
-    fn compile_print(scope: &mut X86Store, format: String, argument: Value, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+    fn compile_print(scope: &mut X86Store, format: String, argument: Option<Value>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
         let label = context.datas.create_label();
         
         context.datas.add_string_data(&label, format); // printf testing code
-        //  movl    $0, %eax
 
-        let argument_type: ValueType = argument.clone().into();
-        let argument_location = X86ValueCompiler::compile(argument, context, scope, None)?;
-
-        // todo: make this code more generic
-        if let ValueType::String = argument_type {
-            context.instructions.add_instruction(X86Instruction::Lea { source: argument_location, target: X86Location::Register(X86AddressingMode::Direct(Register::ESI)), comment: None });
-        } else {
-            context.instructions.add_instruction(X86Instruction::Mov { source: argument_location, target: X86Location::Register(X86AddressingMode::Direct(Register::ESI)), comment: None });
+        if let Some(argument) = argument {
+            let argument_location = X86ValueCompiler::compile(argument.clone(), context, scope, None)?;
+            context.instructions.add_instruction(X86Instruction::movement(argument, argument_location, X86Location::Register(X86AddressingMode::Direct(Register::ESI))));    
         }
 
         context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::RDI)), comment: None });
-        context.instructions.add_instruction(X86Instruction::Call("printf".to_owned()));
+        context.instructions.add_instruction(X86Instruction::Call(context.os_specific_defs.print().to_owned()));
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call instruction write last information into RAX register
         scope.register_restore(registers);
         Ok(())

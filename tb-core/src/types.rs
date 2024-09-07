@@ -113,7 +113,7 @@ pub enum Statement {
     },
     Print {
         format: String,
-        argument: Value
+        argument: Option<Value>
     },
     Return(Option<Value>)
 }

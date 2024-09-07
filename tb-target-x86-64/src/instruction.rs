@@ -3,6 +3,8 @@ use std::fmt::Debug;
 use strum_macros::EnumDiscriminants;
 use strum_macros::Display;
 use tb_core::instruction::InstructionTrait;
+use tb_core::types::Value;
+use tb_core::types::ValueType;
 
 use crate::register::Register;
 use crate::X86AbstractInstruction;
@@ -99,6 +101,18 @@ pub enum X86Instruction {
     Push(X86Location),
     Pop(X86Location),
     Ret
+}
+
+impl X86Instruction {
+    pub fn movement(source_value: Value, source: X86Location, target: X86Location) -> X86Instruction {
+        let source_type: ValueType = source_value.clone().into();
+        
+        if let ValueType::String = source_type {
+            X86Instruction::Lea { source, target, comment: None }
+        } else {
+            X86Instruction::Mov { source, target, comment: None }
+        }
+    }
 }
 
 impl From<X86Instruction> for X86AbstractInstruction {

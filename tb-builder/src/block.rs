@@ -26,7 +26,7 @@ impl BlockType {
         })
     }
 
-    pub fn add_print(&mut self, format: String, argument: Value) {
+    pub fn add_print(&mut self, format: String, argument: Option<Value>) {
         self.items.push(Statement::Print {
             format,
             argument

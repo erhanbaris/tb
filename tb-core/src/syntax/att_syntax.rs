@@ -21,7 +21,7 @@ impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTr
         let mut buffer = String::new();
 
         for item in context.datas.items.clone().into_iter() {
-            self.process_data(item, &mut buffer);
+            self.process_data(item, &mut buffer, context);
         }
 
         buffer.push_str("\r\n.text\r\n");
@@ -36,8 +36,8 @@ impl<I> SyntaxGeneratorTrait<I> for ATTSyntaxGenerator<I> where I: InstructionTr
 }
 
 impl<I> ATTSyntaxGenerator<I> where I: InstructionTrait {
-    fn process_data(&self, item: DataItem, buffer: &mut String) {
-        buffer.push_str(&format!("\r\n.text\r\n.section	.rodata\r\n.{}:\r\n", &item.label));
+    fn process_data<S: StorageTrait>(&self, item: DataItem, buffer: &mut String, context: &mut ApplicationContext<I, S>) {
+        buffer.push_str(&format!("\r\n{}\r\n.{}:\r\n", context.os_specific_defs.readonly_string_section(), &item.label));
         for data in item.values.clone().into_iter() {
             match data {
                 super::Data::String(data) => buffer.push_str(&format!("    .string \"{}\"\r\n", &data.replace("\"", "\\\""))),

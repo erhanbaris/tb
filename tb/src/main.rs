@@ -18,19 +18,21 @@ fn main() {
 
     let mut if_condition_true_block = BlockType::default();
     if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(1))));
+    if_condition_true_block.add_print("test1 should 1, : %d\r\n".to_owned(), Some(Value::Variable("test1".to_owned())));
 
     let mut if_condition_false_block = BlockType::default();
     if_condition_false_block.add_assign("test1", ExpressionType::value(Value::Number(0.into())));
+    if_condition_false_block.add_print("test1 should 0, : %d\r\n".to_owned(), Some(Value::Variable("test1".to_owned())));
 
     let mut if_condition = IfBlockType::default();
-    if_condition.set_condition(ConditionType::ne(Value::Number(Number::U64(0)), Value::Number(Number::U64(10))));
+    if_condition.set_condition(ConditionType::ne(Value::Number(Number::U64(10)), Value::Number(Number::U64(10))));
     if_condition.set_true_block(if_condition_true_block);
     if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
-    main_func_block.add_print("Integer value: %d".to_owned(), Value::Number(Number::U32(1024)));
-    // main_func_block.add_print("String value: %s".to_owned(), Value::String("Hello world".to_owned())); // this is not working now
-    main_func_block.add_return_variable("test1");
+    main_func_block.add_print("Integer value: %d\r\n".to_owned(), Some(Value::Number(Number::U32(1024))));
+    main_func_block.add_print("Merhaba\r\n".to_owned(), None); // this is not working now
+    main_func_block.add_return_number(0.into());
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();

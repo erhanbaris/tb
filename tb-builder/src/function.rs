@@ -1,4 +1,4 @@
-use tb_core::{tool::os_defs, types::{Definition, Number, Value}};
+use tb_core::{tool::os_defs, types::{Definition, NumberType, Parameter}};
 
 use crate::BlockType;
 
@@ -8,7 +8,7 @@ use super::BuilderGenerate;
 #[derive(Debug, Clone, Default)]
 pub struct FunctionType {
     name: String,
-    parameters: Vec<Value>,
+    parameters: Vec<Parameter>,
     block: BlockType
 }
 
@@ -30,12 +30,8 @@ impl FunctionType {
         &self.name
     }
 
-    pub fn add_variable_parameter(&mut self, name: &str) {
-        self.parameters.push(Value::Variable(name.to_owned()));
-    }
-
-    pub fn add_number_parameter(&mut self, value: Number) {
-        self.parameters.push(Value::Number(value));
+    pub fn add_parameter(&mut self, name: &str, param_type: NumberType) {
+        self.parameters.push(Parameter { name: name.to_owned(), param_type });
     }
 
     pub fn set_body(&mut self, block: BlockType) {

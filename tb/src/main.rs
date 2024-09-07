@@ -4,7 +4,7 @@ use std::{fs::File, io::Write, path::PathBuf, process::Command, str::FromStr};
 use log::LevelFilter;
 use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode};
 use tb_builder::{ApplicationType, BlockType, ConditionType, ExpressionType, FunctionType, IfBlockType};
-use tb_core::{compiler::{CompilerTrait, TBCompiler}, types::{Number, Value}};
+use tb_core::{compiler::{CompilerTrait, TBCompiler}, types::{Number, NumberType, Value}};
 use tb_target_x86_64::generator::X86AssemblyGenerator;
 
 #[cfg(test)]
@@ -12,6 +12,18 @@ mod tests;
 
 fn main() {
     let _ = CombinedLogger::init(vec![TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto)]);
+
+    let mut sum_func = FunctionType::main();
+    sum_func.add_parameter("a", NumberType::I64);
+    sum_func.add_parameter("b", NumberType::I64);
+
+    let mut sum_func_block = BlockType::default();
+    sum_func_block.add_assign("actual", ExpressionType::add(Value::Variable("a".to_string()), Value::Variable("b".to_string())));
+    sum_func_block.add_return_variable("actual");
+
+    sum_func.set_body(sum_func_block);
+    sum_func.set_name("sum");
+
 
     let mut main_func = FunctionType::main();
     let mut main_func_block = BlockType::default();
@@ -32,11 +44,16 @@ fn main() {
     main_func_block.add_if(if_condition);
     main_func_block.add_print("Integer value: %d\r\n".to_owned(), Some(Value::Number(Number::U32(1024))));
     main_func_block.add_print("Merhaba\r\n".to_owned(), None); // this is not working now
-    main_func_block.add_return_number(0.into());
+    main_func_block.add_call("_printf".to_owned(), vec!["1.: %s, 2.: %s, 3.: %s, 4.: %s, 5.: %s, 6.: %s, 7.: %s, 8.: %s, 9.: %s, 10.: %s\r\n".into(), "1".into(), "2".into(), "3".into(), "4".into(), "5".into(), "6".into(), "7".into(), "8".into(), "9".into(), "10".into()]); // this is not working now
+    
+    main_func_block.add_call_and_assign("sum".to_owned(), vec![20.into(), 12.into()], "total".to_string()); // this is not working now
+    main_func_block.add_print("Total value: %d\r\n".to_owned(), Some(Value::Variable("total".to_string())));
+    main_func_block.add_return_variable("total");
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();
     application_type.add_function(main_func);
+    application_type.add_function(sum_func);
     //application_type.add_string_data("string1", "This is a string1.");
     //application_type.add_byte_data("string1", 1);
     

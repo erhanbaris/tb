@@ -1,8 +1,8 @@
-use tb_core::types::{Block, Definition, Number, Value};
+use tb_core::types::{Block, Definition, Number, Parameter};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
-use super::{error::X86Error, statement::X86StatementCompiler};
+use super::{error::X86Error, statement::{X86StatementCompiler, CALL_CONVENTION}};
 
 const MIN_STACK_SIZE: u16 = 16; //byte
 
@@ -15,13 +15,23 @@ impl X86DefinitionCompiler {
         }
     }
 
-    fn compile_function(name: String, _: Vec<Value>, block: Block, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+    fn compile_function(name: String, arguments: Vec<Parameter>, block: Block, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let mut scope = X86Store::default();
         context.instructions.add_branch(name.to_owned());
 
         // Function begin
         context.instructions.add_instruction(X86Instruction::Push(X86Location::Register(X86AddressingMode::Direct(Register::RBP))));
         context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), target: X86Location::Register(X86AddressingMode::Direct(Register::RBP)), comment: None });
+
+        for (index, parameter) in arguments.into_iter().enumerate().rev() {
+            let register = (*CALL_CONVENTION).get_register(index);
+            let variable = scope.add_variable(&parameter.name, parameter.param_type.size() as u8);
+
+            if let Some(reg) = register {
+                context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(reg)), target: X86Location::Register(X86AddressingMode::Based(-(variable.position as i32), Register::RBP)), comment: None });
+            }
+        }
+
         context.instructions.add_instruction(X86Instruction::Sub { source: X86Location::Imm(Number::U16(0)), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None });
         let stack_pointer_position = context.instructions.last_instruction_position();
 

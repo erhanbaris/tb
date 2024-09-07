@@ -1,8 +1,17 @@
-use tb_core::{location::Location, types::{Block, Condition, ConditionDiscriminant, Expression, Statement, Value}};
+use std::sync::LazyLock;
+
+use tb_core::{location::Location, types::{Block, CallingConventions, Condition, ConditionDiscriminant, Expression, ProcedureCall, RegisterSize, Statement, Value}};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
 use super::{block::X86BlockCompiler, condition::X86ConditionCompiler, error::X86Error, expression::X86ExpressionCompiler, X86ValueCompiler};
+
+pub static CALL_CONVENTION: LazyLock<ProcedureCall<Register>>= LazyLock::new(|| {
+    ProcedureCall {
+        convention: CallingConventions::Systemv,
+        registers: vec![Register::RDI, Register::RSI, Register::RDX, Register::RCX, Register::R8, Register::R9]
+    }
+});
 
 pub struct X86StatementCompiler;
 
@@ -11,6 +20,7 @@ impl X86StatementCompiler {
     pub fn compile(statement: Statement, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne, context),
+            Statement::Call { name, arguments, assign } => Self::compile_call(scope, name, arguments, assign, context),
             Statement::Print { format, argument } => Self::compile_print(scope, format, argument, context),
             Statement::Return(expr) => Self::compile_return(scope, expr, context),
             Statement::If { condition, true_block, false_block } => Self::compile_if(scope, condition, true_block, false_block, context),
@@ -31,7 +41,7 @@ impl X86StatementCompiler {
     fn compile_assign(scope: &mut X86Store, name: String, assigne: Expression, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let position = match scope.find_variable(&name) {
             Some(variable) => variable.position,
-            None => scope.add_variable(&name, 4).position
+            None => scope.add_variable(&name, 8).position
         };
 
         let registers = scope.register_backup();
@@ -53,19 +63,61 @@ impl X86StatementCompiler {
     }
     
     fn compile_print(scope: &mut X86Store, format: String, argument: Option<Value>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
-        let registers = scope.register_backup();
-        let label = context.datas.create_label();
-        
-        context.datas.add_string_data(&label, format); // printf testing code
+        let mut arguments = Vec::new();
+        arguments.push(Value::String(format));
 
         if let Some(argument) = argument {
-            let argument_location = X86ValueCompiler::compile(argument.clone(), context, scope, None)?;
-            context.instructions.add_instruction(X86Instruction::movement(argument, argument_location, X86Location::Register(X86AddressingMode::Direct(Register::ESI))));    
+            arguments.push(argument);
         }
 
-        context.instructions.add_instruction(X86Instruction::Lea { source: Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(Register::RDI)), comment: None });
-        context.instructions.add_instruction(X86Instruction::Call(context.os_specific_defs.print().to_owned()));
-        scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call instruction write last information into RAX register
+        Self::compile_call(scope, context.os_specific_defs.print().to_owned(), arguments, None, context)
+    }
+
+    fn compile_call(scope: &mut X86Store, name: String, arguments: Vec<Value>, assign: Option<String>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+        let registers = scope.register_backup();
+        
+        for (index, argument) in arguments.into_iter().enumerate().rev() {
+            let register = (*CALL_CONVENTION).get_register(index);
+            match register {
+                Some(reg) => {
+                    X86ValueCompiler::compile(argument.clone(), context, scope, Some(X86Location::Register(X86AddressingMode::Direct(reg))))?;
+                },
+                None => {
+                    match argument {
+                        Value::Variable(variable) => {
+                            let variable_position = {
+                                let variable = scope.find_variable(&variable).ok_or(X86Error::VariableNotFound(variable.to_owned()))?;
+                                variable.position
+                            };
+                            context.instructions.add_instruction(X86Instruction::Push(X86Location::Register(X86AddressingMode::create_based(-(variable_position as i32), Register::RBP))));
+                        },
+                        Value::Number(num) => {
+                            context.instructions.add_instruction(X86Instruction::Push(X86Location::Imm(num)));
+                        },
+                        Value::String(string) => {
+                            let label = context.datas.create_label();
+                            context.datas.add_string_data(&label, &string);
+                            let tmp_register = scope.lock_register(RegisterSize::_64Bit).ok_or(X86Error::NoRegisterAvailable)?;
+                            let variable = scope.add_temp_variable(8);
+                            context.instructions.add_instruction(X86Instruction::Lea { source: X86Location::Label(label), target: X86Location::Register(X86AddressingMode::Direct(tmp_register)), comment: None });
+                            context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(tmp_register)), target: X86Location::Register(X86AddressingMode::Based(-(variable.position as i32), Register::RBP)), comment: None });
+                            scope.release_register(tmp_register);
+                        }
+                    };
+                },
+            };
+        }
+
+        context.instructions.add_instruction(X86Instruction::Call(name));
+        scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call result is in RAX register
+
+        if let Some(assigned) = assign {
+            let position = match scope.find_variable(&assigned) {
+                Some(variable) => variable.position,
+                None => scope.add_variable(&assigned, 8).position
+            };
+            context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(Register::RAX)), target: X86Location::Register(X86AddressingMode::Based(-(position as i32), Register::RBP)), comment: None });
+        }
         scope.register_restore(registers);
         Ok(())
     }

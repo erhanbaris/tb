@@ -33,6 +33,22 @@ impl BlockType {
         })
     }
 
+    pub fn add_call(&mut self, name: String, arguments: Vec<Value>) {
+        self.items.push(Statement::Call {
+            name,
+            arguments,
+            assign: None
+        })
+    }
+
+    pub fn add_call_and_assign(&mut self, name: String, arguments: Vec<Value>, variable_name: String) {
+        self.items.push(Statement::Call {
+            name,
+            arguments,
+            assign: Some(variable_name)
+        })
+    }
+
     pub fn add_return(&mut self) {
         self.items.push(Statement::Return(None))
     }

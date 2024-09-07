@@ -23,6 +23,7 @@ mod shift_right_test;
 mod inc_test;
 mod dec_test;
 mod if_test;
+mod func_call;
 
 pub fn get_exit_code(application: ApplicationType, file_name: &str, exit_code: i32) {
     let mut source_file_name = temp_dir();

@@ -52,7 +52,7 @@ where
     }
 
     pub fn get_last_position(&self) -> usize {
-        self.last_position.clone()
+        self.last_position
     }
 
     pub fn set_last_assigned_location(&mut self, location: L) {

@@ -13,6 +13,20 @@ pub enum Value {
     String(String)
 }
 
+impl From<i8> for Value { fn from(value:  i8) -> Self { Value::Number(value.into()) } }
+impl From<u8> for Value { fn from(value:  u8) -> Self { Value::Number(value.into()) } }
+impl From<i16> for Value { fn from(value: i16) -> Self { Value::Number(value.into()) } }
+impl From<u16> for Value { fn from(value: u16) -> Self { Value::Number(value.into()) } }
+impl From<i32> for Value { fn from(value: i32) -> Self { Value::Number(value.into()) } }
+impl From<u32> for Value { fn from(value: u32) -> Self { Value::Number(value.into()) } }
+impl From<i64> for Value { fn from(value: i64) -> Self { Value::Number(value.into()) } }
+impl From<u64> for Value { fn from(value: u64) -> Self { Value::Number(value.into()) } }
+impl From<f32> for Value { fn from(value: f32) -> Self { Value::Number(value.into()) } }
+impl From<f64> for Value { fn from(value: f64) -> Self { Value::Number(value.into()) } }
+impl From<bool> for Value { fn from(value: bool) -> Self { Value::Number(value.into()) } }
+impl From<String> for Value { fn from(value: String) -> Self { Value::String(value) } }
+impl From<&str> for Value { fn from(value: &str) -> Self { Value::String(value.to_owned()) } }
+
 #[derive(Debug, Clone, EnumDiscriminants)]
 #[strum_discriminants(name(ExpressionDiscriminant))]
 pub enum Expression {
@@ -115,14 +129,26 @@ pub enum Statement {
         format: String,
         argument: Option<Value>
     },
+    Call {
+        name: String,
+        arguments: Vec<Value>,
+        assign: Option<String>
+    },
     Return(Option<Value>)
+}
+
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct Parameter {
+    pub name: String,
+    pub param_type: NumberType
 }
 
 #[derive(Debug, Clone)]
 pub enum Definition {
     Function {
         name: String,
-        parameters: Vec<Value>,
+        parameters: Vec<Parameter>,
         block: Block
     },
 }
@@ -272,6 +298,24 @@ impl Number {
     }
 }
 
+impl NumberType {
+    pub fn size(&self) -> RegisterSize {
+        match self {
+            NumberType::I8 => RegisterSize::_8Bit,
+            NumberType::U8 => RegisterSize::_8Bit,
+            NumberType::I16 => RegisterSize::_16Bit,
+            NumberType::U16 => RegisterSize::_16Bit,
+            NumberType::I32 => RegisterSize::_32Bit,
+            NumberType::U32 => RegisterSize::_32Bit,
+            NumberType::I64 => RegisterSize::_64Bit,
+            NumberType::U64 => RegisterSize::_64Bit,
+            NumberType::Float => RegisterSize::_32Bit,
+            NumberType::Double => RegisterSize::_64Bit,
+            NumberType::Bool => RegisterSize::_8Bit,
+        }
+    }
+}
+
 impl Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -293,16 +337,43 @@ impl Display for Number {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum CallingConventions {
+    Systemv,
+    Microsoft,
+    Arm
+}
+
+#[derive(Debug, Clone)]
+pub struct ProcedureCall<R: RegisterTrait> {
+    pub convention: CallingConventions,
+    pub registers: Vec<R>
+}
+
+impl<R> ProcedureCall<R> where R: RegisterTrait {
+    pub fn new(convention: CallingConventions, registers: Vec<R>) -> Self {
+        Self {
+            convention,
+            registers
+        }
+    }
+
+    pub fn get_register(&self, index: usize) -> Option<R> {
+        let reg = self.registers.get(index).cloned();
+        reg
+    }
+}
+
 pub trait AssemblyGenerator: Default {
     fn generate(&self, definitions: Vec<Definition>, datas: DataItemCollection) -> String;
 }
 
 #[derive(Ord, Eq, PartialOrd, Debug, Copy, Clone, PartialEq)]
 pub enum RegisterSize {
-    _8Bit = 0,
-    _16Bit = 1,
-    _32Bit = 2,
-    _64Bit = 3
+    _8Bit = 1,
+    _16Bit = 2,
+    _32Bit = 4,
+    _64Bit = 8
 }
 
 impl From<u8> for RegisterSize {

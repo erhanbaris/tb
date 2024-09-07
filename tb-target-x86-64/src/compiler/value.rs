@@ -52,6 +52,11 @@ impl X86ValueCompiler {
             Value::String(data) => {
                 let label = context.datas.create_label();
                 context.datas.add_string_data(&label, &data);
+
+                if let Some(target) = target {
+                    context.instructions.add_instruction(X86Instruction::Lea { source: X86Location::Label(label.clone()), target: target.clone(), comment: None });
+                }
+
                 Ok(X86Location::Label(label))
             }
         }

@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use tb_core::{location::Location, types::{Block, CallingConventions, Condition, ConditionDiscriminant, Expression, ProcedureCall, RegisterSize, Statement, Value}};
+use tb_core::{location::Location, types::{Block, CallingConventions, Condition, ConditionDiscriminant, Expression, Number, ProcedureCall, RegisterSize, Statement, Value}};
 
 use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, X86ApplicationContext, X86Location, X86Store};
 
@@ -75,7 +75,10 @@ impl X86StatementCompiler {
 
     fn compile_call(scope: &mut X86Store, name: String, arguments: Vec<Value>, assign: Option<String>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
-        
+
+        // todo: save the register before used, if need it
+        let mut total_stack_bytes = 0;
+
         for (index, argument) in arguments.into_iter().enumerate().rev() {
             let register = (*CALL_CONVENTION).get_register(index);
             match register {
@@ -83,6 +86,7 @@ impl X86StatementCompiler {
                     X86ValueCompiler::compile(argument.clone(), context, scope, Some(X86Location::Register(X86AddressingMode::Direct(reg))))?;
                 },
                 None => {
+                    total_stack_bytes += 8;
                     match argument {
                         Value::Variable(variable) => {
                             let variable_position = {
@@ -111,6 +115,10 @@ impl X86StatementCompiler {
         context.instructions.add_instruction(X86Instruction::Call(name));
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call result is in RAX register
 
+        if total_stack_bytes > 0 {
+            context.instructions.add_instruction(X86Instruction::Add { source: X86Location::Imm(Number::U32(total_stack_bytes)), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None });
+        }
+
         if let Some(assigned) = assign {
             let position = match scope.find_variable(&assigned) {
                 Some(variable) => variable.position,
@@ -118,6 +126,8 @@ impl X86StatementCompiler {
             };
             context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Register(X86AddressingMode::Direct(Register::RAX)), target: X86Location::Register(X86AddressingMode::Based(-(position as i32), Register::RBP)), comment: None });
         }
+
+        // todo: restore the register before used, if need it
         scope.register_restore(registers);
         Ok(())
     }

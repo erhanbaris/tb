@@ -19,6 +19,7 @@ fn main() {
 
     let mut sum_func_block = BlockType::default();
     sum_func_block.add_assign("actual", ExpressionType::add(Value::Variable("a".to_string()), Value::Variable("b".to_string())));
+    sum_func_block.add_print("Sum : %d\r\n".to_owned(), Some(Value::Variable("actual".to_owned())));
     sum_func_block.add_return_variable("actual");
 
     sum_func.set_body(sum_func_block);
@@ -42,13 +43,13 @@ fn main() {
     if_condition.set_false_block(if_condition_false_block);
 
     main_func_block.add_if(if_condition);
-    main_func_block.add_print("Integer value: %d\r\n".to_owned(), Some(Value::Number(Number::U32(1024))));
-    main_func_block.add_print("Merhaba\r\n".to_owned(), None); // this is not working now
+    //main_func_block.add_print("Integer value: %d\r\n".to_owned(), Some(Value::Number(Number::U32(1024))));
+    //main_func_block.add_print("Merhaba\r\n".to_owned(), None); // this is not working now
     main_func_block.add_call("_printf".to_owned(), vec!["1.: %s, 2.: %s, 3.: %s, 4.: %s, 5.: %s, 6.: %s, 7.: %s, 8.: %s, 9.: %s, 10.: %s\r\n".into(), "1".into(), "2".into(), "3".into(), "4".into(), "5".into(), "6".into(), "7".into(), "8".into(), "9".into(), "10".into()]); // this is not working now
     
     main_func_block.add_call_and_assign("sum".to_owned(), vec![20.into(), 12.into()], "total".to_string()); // this is not working now
-    main_func_block.add_print("Total value: %d\r\n".to_owned(), Some(Value::Variable("total".to_string())));
-    main_func_block.add_return_variable("total");
+    //main_func_block.add_print("Total value: %d\r\n".to_owned(), Some(Value::Variable("total".to_string())));
+    //main_func_block.add_return_variable("total");
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();

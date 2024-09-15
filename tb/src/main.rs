@@ -19,7 +19,7 @@ fn main() {
 
     let mut sum_func_block = BlockType::default();
     sum_func_block.add_assign("actual", ExpressionType::add(Value::Variable("a".to_string()), Value::Variable("b".to_string())));
-    sum_func_block.add_print("Sum : %d\r\n".to_owned(), Some(Value::Variable("actual".to_owned())));
+    sum_func_block.add_print("Sum : %d\r\n".to_owned(), vec![Value::Variable("actual".to_owned())]);
     sum_func_block.add_return_variable("actual");
 
     sum_func.set_body(sum_func_block);
@@ -31,11 +31,11 @@ fn main() {
 
     let mut if_condition_true_block = BlockType::default();
     if_condition_true_block.add_assign("test1", ExpressionType::value(Value::Number(Number::U64(1))));
-    if_condition_true_block.add_print("test1 should 1, : %d\r\n".to_owned(), Some(Value::Variable("test1".to_owned())));
+    if_condition_true_block.add_print("test1 should 1, : %d\r\n".to_owned(), vec![Value::Variable("test1".to_owned())]);
 
     let mut if_condition_false_block = BlockType::default();
     if_condition_false_block.add_assign("test1", ExpressionType::value(Value::Number(0.into())));
-    if_condition_false_block.add_print("test1 should 0, : %d\r\n".to_owned(), Some(Value::Variable("test1".to_owned())));
+    if_condition_false_block.add_print("test1 should 0, : %d\r\n".to_owned(), vec![Value::Variable("test1".to_owned())]);
 
     let mut if_condition = IfBlockType::default();
     if_condition.set_condition(ConditionType::ne(Value::Number(Number::U64(10)), Value::Number(Number::U64(10))));

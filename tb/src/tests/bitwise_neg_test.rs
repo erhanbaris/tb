@@ -29,7 +29,7 @@ fn basic_bitwise_neg_test_2() {
     let mut main_func_block = BlockType::default();
 
     main_func_block.add_assign("actual", ExpressionType::bitwise_neg(Value::Number(Number::I32(10))));
-    main_func_block.add_print("%d".to_owned(), Some(Value::Variable("actual".to_owned())));
+    main_func_block.add_print("%d".to_owned(), vec![Value::Variable("actual".to_owned())]);
     main_func.set_body(main_func_block);
 
     let mut application_type = ApplicationType::default();

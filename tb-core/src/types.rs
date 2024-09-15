@@ -127,12 +127,13 @@ pub enum Statement {
     },
     Print {
         format: String,
-        argument: Option<Value>
+        arguments: Vec<Value>
     },
     Call {
         name: String,
         arguments: Vec<Value>,
-        assign: Option<String>
+        assign: Option<String>,
+        is_variadic: bool
     },
     Return(Option<Value>)
 }

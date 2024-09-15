@@ -26,10 +26,10 @@ impl BlockType {
         })
     }
 
-    pub fn add_print(&mut self, format: String, argument: Option<Value>) {
+    pub fn add_print(&mut self, format: String, arguments: Vec<Value>) {
         self.items.push(Statement::Print {
             format,
-            argument
+            arguments
         })
     }
 
@@ -37,7 +37,8 @@ impl BlockType {
         self.items.push(Statement::Call {
             name,
             arguments,
-            assign: None
+            assign: None,
+            is_variadic: false
         })
     }
 
@@ -45,7 +46,8 @@ impl BlockType {
         self.items.push(Statement::Call {
             name,
             arguments,
-            assign: Some(variable_name)
+            assign: Some(variable_name),
+            is_variadic: false
         })
     }
 

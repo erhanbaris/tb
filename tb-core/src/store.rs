@@ -20,6 +20,7 @@ pub struct Store<R: RegisterTrait, L: Clone, D: StoreDefaultRegisters<R> + Clone
     last_assigned_location: L,
     last_size: RegisterSize,
     registers: Vec<(R, bool)>,
+    has_function_call: bool,
     _mark: PhantomData<D>
 }
 
@@ -36,6 +37,7 @@ where
             last_assigned_location: L::default(),
             registers: D::initialize(),
             last_size: RegisterSize::_32Bit,
+            has_function_call: false,
             _mark: PhantomData
         }
     }
@@ -53,6 +55,14 @@ where
 
     pub fn get_last_position(&self) -> usize {
         self.last_position
+    }
+
+    pub fn get_has_function_call(&mut self) -> bool {
+        self.has_function_call
+    }
+
+    pub fn set_has_function_call(&mut self) {
+        self.has_function_call = true;
     }
 
     pub fn set_last_assigned_location(&mut self, location: L) {

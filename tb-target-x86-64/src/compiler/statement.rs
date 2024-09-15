@@ -20,8 +20,8 @@ impl X86StatementCompiler {
     pub fn compile(statement: Statement, scope: &mut X86Store, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         match statement {
             Statement::Assign { name, assigne } => Self::compile_assign(scope, name, assigne, context),
-            Statement::Call { name, arguments, assign } => Self::compile_call(scope, name, arguments, assign, context),
-            Statement::Print { format, argument } => Self::compile_print(scope, format, argument, context),
+            Statement::Call { name, arguments, assign, is_variadic } => Self::compile_call(scope, name, arguments, assign, is_variadic, context),
+            Statement::Print { format, arguments } => Self::compile_print(scope, format, arguments, context),
             Statement::Return(expr) => Self::compile_return(scope, expr, context),
             Statement::If { condition, true_block, false_block } => Self::compile_if(scope, condition, true_block, false_block, context),
         }
@@ -62,22 +62,22 @@ impl X86StatementCompiler {
         Ok(())
     }
     
-    fn compile_print(scope: &mut X86Store, format: String, argument: Option<Value>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
-        let mut arguments = Vec::new();
-        arguments.push(Value::String(format));
+    fn compile_print(scope: &mut X86Store, format: String, arguments: Vec<Value>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+        let mut tmp_arguments = Vec::new();
+        tmp_arguments.push(Value::String(format));
+        tmp_arguments.extend(arguments.into_iter());
 
-        if let Some(argument) = argument {
-            arguments.push(argument);
-        }
-
-        Self::compile_call(scope, context.os_specific_defs.print().to_owned(), arguments, None, context)
+        Self::compile_call(scope, context.os_specific_defs.print().to_owned(), tmp_arguments, None, true, context)
     }
 
-    fn compile_call(scope: &mut X86Store, name: String, arguments: Vec<Value>, assign: Option<String>, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
+    fn compile_call(scope: &mut X86Store, name: String, arguments: Vec<Value>, assign: Option<String>, is_variadic: bool, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let registers = scope.register_backup();
 
         // todo: save the register before used, if need it
         let mut total_stack_bytes = 0;
+
+        // Float or double variable types
+        let mut vector_variable_count = 0;
 
         for (index, argument) in arguments.into_iter().enumerate().rev() {
             let register = (*CALL_CONVENTION).get_register(index);
@@ -96,6 +96,13 @@ impl X86StatementCompiler {
                             context.instructions.add_instruction(X86Instruction::Push(X86Location::Register(X86AddressingMode::create_based(-(variable_position as i32), Register::RBP))));
                         },
                         Value::Number(num) => {
+
+                            // We will use this information if the function call is variadic
+                            match &num {
+                                Number::Float(_) | Number::Double(_) => vector_variable_count += 1,
+                                _ => ()
+                            };
+
                             context.instructions.add_instruction(X86Instruction::Push(X86Location::Imm(num)));
                         },
                         Value::String(string) => {
@@ -112,11 +119,20 @@ impl X86StatementCompiler {
             };
         }
 
+        if is_variadic {
+            scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call result is in RAX register
+            context.instructions.add_instruction(X86Instruction::Mov { source: X86Location::Imm(Number::U8(vector_variable_count)), target: X86Location::Register(X86AddressingMode::Direct(Register::RAX)), comment: None });
+        }
+
         context.instructions.add_instruction(X86Instruction::Call(name));
         scope.set_last_assigned_location(X86Location::Register(X86AddressingMode::Direct(Register::RAX))); // call result is in RAX register
 
         if total_stack_bytes > 0 {
+            //addq $16, %rsp
             context.instructions.add_instruction(X86Instruction::Add { source: X86Location::Imm(Number::U32(total_stack_bytes)), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None });
+            
+            // Extra 16 byte required with function call
+            scope.set_has_function_call();
         }
 
         if let Some(assigned) = assign {

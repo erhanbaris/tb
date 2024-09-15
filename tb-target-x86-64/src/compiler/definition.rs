@@ -4,7 +4,7 @@ use crate::{instruction::X86Instruction, register::Register, X86AddressingMode, 
 
 use super::{error::X86Error, statement::{X86StatementCompiler, CALL_CONVENTION}};
 
-const MIN_STACK_SIZE: u16 = 16; //byte
+const FUNCTION_CALL_STACK_SIZE: u16 = 16; //byte
 
 pub struct X86DefinitionCompiler;
 
@@ -17,6 +17,8 @@ impl X86DefinitionCompiler {
 
     fn compile_function(name: String, arguments: Vec<Parameter>, block: Block, context: &mut X86ApplicationContext) -> Result<(), X86Error> {
         let mut scope = X86Store::default();
+
+        // Function name
         context.instructions.add_branch(name.to_owned());
 
         // Function begin
@@ -50,9 +52,14 @@ impl X86DefinitionCompiler {
         context.instructions.add_instruction(X86Instruction::Ret);
         context.instructions.add_close_branch();
 
-        if scope.get_last_position() > 0 {
+        if scope.get_last_position() > 0 || scope.get_has_function_call() {
             // Update stack allocation instruction
-            context.instructions.update_instruction(X86Instruction::Sub { source: X86Location::Imm(Number::U16(std::cmp::max(scope.get_last_position() as u16, MIN_STACK_SIZE))), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None }, stack_pointer_position);
+            let stack_size = match scope.get_has_function_call() {
+                true => scope.get_last_position() as u16 + FUNCTION_CALL_STACK_SIZE,
+                false => scope.get_last_position() as u16
+            };
+
+            context.instructions.update_instruction(X86Instruction::Sub { source: X86Location::Imm(Number::U16(stack_size)), target: X86Location::Register(X86AddressingMode::Direct(Register::RSP)), comment: None }, stack_pointer_position);
             
         } else {
             // No need this instruction, remove it

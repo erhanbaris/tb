@@ -26,7 +26,7 @@ fn func_call_1() {
 
     
     main_func_block.add_call_and_assign("sum".to_owned(), vec![20.into(), 12.into()], "total".to_string()); // this is not working now
-    main_func_block.add_print("Total value: %d".to_owned(), Some(Value::Variable("total".to_string())));
+    main_func_block.add_print("Total value: %d".to_owned(), vec![Value::Variable("total".to_string())]);
 
     main_func_block.add_return_variable("total");
     main_func.set_body(main_func_block);
@@ -65,7 +65,7 @@ fn func_call_2() {
     
     main_func_block.add_assign("j", ExpressionType::value(Value::Number(Number::I16(1))));
     main_func_block.add_call_and_assign("sum".to_owned(), vec![20.into(), 12.into(), 1.into(), 2.into(), 20.into(), 12.into(), 1.into(), 2.into(), 20.into(), Value::Variable("j".to_owned())], "total".to_string()); // this is not working now
-    main_func_block.add_print("Total value: %d".to_owned(), Some(Value::Variable("total".to_string())));
+    main_func_block.add_print("Total value: %d".to_owned(), vec![Value::Variable("total".to_string())]);
 
     main_func_block.add_return_variable("total");
     main_func.set_body(main_func_block);

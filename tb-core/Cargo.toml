@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-thiserror = "1.0.40"
+thiserror = "2.0.0"
 rstest = "0.22.0"
 strum = "0.26"
 strum_macros = "0.26"

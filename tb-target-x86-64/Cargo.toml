@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 tb-core = { path = "../tb-core" }
-strum = "0.26"
-strum_macros = "0.26"
+strum = "0.27"
+strum_macros = "0.27"
